@@ -20,8 +20,7 @@ from alimlabo import Ui_MainWindow
 # Import des widgets utilisés
 from PyQt5.QtWidgets import (
     QApplication,
-    QMainWindow, QMessageBox, QFileDialog, QTableWidgetItem
-)
+    QMainWindow, QMessageBox, QFileDialog, QTableWidgetItem)
 # Import des bibliotèques QtCore
 from PyQt5.QtCore import QTimer, QFileInfo, Qt, QDateTime
 from PyQt5.QtGui import QIcon
