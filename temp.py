@@ -58,6 +58,9 @@ class PowerSupply:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._is_open:
             self.dev.close()
+            
+    def close(self):
+        self.dev.close()
 
     def write(self, command):
         return self.dev.write(command.encode())
@@ -179,20 +182,24 @@ class PowerSupply:
 with PowerSupply() as psu:
     # print("Actual voltage", psu.get_actual_voltage())
     # print("Set voltage to 1V")
-    # psu.set_voltage(2)
+    psu.set_voltage(1)
+    psu.close()
     # print("Actual voltage", psu.get_actual_voltage())
     # print("Set current to to 1A")
-    # psu.set_current(1)
+    # psu.set_current(0)
     # print("Actual current", psu.get_actual_current())
     # print("Actual voltage", psu.get_actual_voltage())
     # #Remise à zéro
     # print('remise à zéro')
     # psu.set_voltage(0)
     # print("Actual voltage", psu.get_actual_voltage())
-    # psu.set_current(0)
+    #psu.set_current(0)
     # print("Actual current", psu.get_actual_current())
     #print("Actual statut", psu.get_statut())
 # mercredi----------------------------------------------------------------------
     #print("Identification", psu.get_idn())
-    psu.set_activate_output(1)
-    print("Actual statut of the output : ", psu.get_info_output())
+    #psu.set_activate_output(0)
+    #print("Actual statut of the output : ", psu.get_info_output())
+
+
+##

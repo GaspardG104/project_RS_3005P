@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1122</width>
+    <height>911</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <widget class="QPushButton" name="onoff">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>120</x>
+      <y>730</y>
+      <width>121</width>
+      <height>91</height>
+     </rect>
+    </property>
+    <property name="mouseTracking">
+     <bool>false</bool>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>Simpleicons_Interface_power-symbol-1.svg</normaloff>Simpleicons_Interface_power-symbol-1.svg</iconset>
+    </property>
+    <property name="shortcut">
+     <string>Ctrl+Return</string>
+    </property>
+   </widget>
+   <widget class="QGraphicsView" name="graphicsVA">
+    <property name="geometry">
+     <rect>
+      <x>810</x>
+      <y>260</y>
+      <width>256</width>
+      <height>192</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit">
+    <property name="geometry">
+     <rect>
+      <x>880</x>
+      <y>240</y>
+      <width>113</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Voltage Ampere</string>
+    </property>
+   </widget>
+   <widget class="QWidget" name="verticalLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>280</y>
+      <width>160</width>
+      <height>106</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="QLineEdit" name="lineEdit_4">
+       <property name="text">
+        <string>Timer</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLCDNumber" name="lcdNumber"/>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="lineEdit_5">
+       <property name="text">
+        <string>Timer</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLCDNumber" name="lcdNumber_2"/>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>200</x>
+      <y>220</y>
+      <width>451</width>
+      <height>441</height>
+     </rect>
+    </property>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="1" column="0">
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="2" column="2">
+        <widget class="QDial" name="current"/>
+       </item>
+       <item row="2" column="1">
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Maximum</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="2" column="0">
+        <widget class="QDial" name="voltage"/>
+       </item>
+      </layout>
+     </item>
+     <item row="0" column="0">
+      <layout class="QGridLayout" name="gridLayout_4">
+       <item row="2" column="2">
+        <widget class="QRadioButton" name="radioButton_3">
+         <property name="text">
+          <string>C.V</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QRadioButton" name="radioButton_2">
+         <property name="text">
+          <string>C.C</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0" rowspan="2">
+        <widget class="QLCDNumber" name="nbAmpere"/>
+       </item>
+       <item row="0" column="0" rowspan="2">
+        <widget class="QLCDNumber" name="nbVoltage"/>
+       </item>
+       <item row="3" column="2">
+        <widget class="QRadioButton" name="radioButton_4">
+         <property name="text">
+          <string>LOCK</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QRadioButton" name="radioButton">
+         <property name="text">
+          <string>OCP</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1122</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menutt">
+    <property name="title">
+     <string>Fichier</string>
+    </property>
+    <addaction name="actionEnregistrer_la_configuration_des_param_tres"/>
+    <addaction name="actionConsole"/>
+   </widget>
+   <widget class="QMenu" name="menuParam_tres">
+    <property name="title">
+     <string>Parametres</string>
+    </property>
+    <widget class="QMenu" name="menuLangue">
+     <property name="title">
+      <string>Langue</string>
+     </property>
+     <addaction name="actionFran_ais"/>
+     <addaction name="actionAnglais"/>
+    </widget>
+    <addaction name="menuLangue"/>
+   </widget>
+   <widget class="QMenu" name="menuAffichages">
+    <property name="title">
+     <string>Affichages</string>
+    </property>
+    <widget class="QMenu" name="menuTaille_de_la_fen_tre">
+     <property name="title">
+      <string>Taille de la fenetre</string>
+     </property>
+     <addaction name="actionGrand"/>
+     <addaction name="actionMoyenne"/>
+     <addaction name="actionPetite"/>
+    </widget>
+    <addaction name="actionMode_expert"/>
+    <addaction name="actionMode_simple"/>
+    <addaction name="separator"/>
+    <addaction name="menuTaille_de_la_fen_tre"/>
+   </widget>
+   <widget class="QMenu" name="menuAide">
+    <property name="title">
+     <string>Aide</string>
+    </property>
+    <addaction name="actionNotice_de_l_alimentation"/>
+   </widget>
+   <addaction name="menutt"/>
+   <addaction name="menuParam_tres"/>
+   <addaction name="menuAffichages"/>
+   <addaction name="menuAide"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionvghh">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>vghh</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
+   </property>
+  </action>
+  <action name="actionMode_expert">
+   <property name="text">
+    <string>Mode expert</string>
+   </property>
+  </action>
+  <action name="actionMode_simple">
+   <property name="text">
+    <string>Mode simple</string>
+   </property>
+  </action>
+  <action name="actionEnregistrer_la_configuration_des_param_tres">
+   <property name="text">
+    <string>Enregistrer la configuration des parametres</string>
+   </property>
+  </action>
+  <action name="actionConsole">
+   <property name="text">
+    <string>Console</string>
+   </property>
+  </action>
+  <action name="actionNotice_de_l_alimentation">
+   <property name="text">
+    <string>Notice de l'alimentation</string>
+   </property>
+   <property name="whatsThis">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://docs.rs-online.com/e2d1/A700000008165960.pdf&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Notice Alimentation RS-3005P&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+  </action>
+  <action name="actionGrand">
+   <property name="text">
+    <string>Grande</string>
+   </property>
+  </action>
+  <action name="actionMoyenne">
+   <property name="text">
+    <string>Moyenne</string>
+   </property>
+  </action>
+  <action name="actionPetite">
+   <property name="text">
+    <string>Petite</string>
+   </property>
+  </action>
+  <action name="actionFran_ais">
+   <property name="text">
+    <string>Francais</string>
+   </property>
+  </action>
+  <action name="actionAnglais">
+   <property name="text">
+    <string>Anglais</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
