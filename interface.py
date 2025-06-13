@@ -34,7 +34,15 @@ class Window(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         self.setupUi(self)
         
-
+        # On associe les cliques sur le bouttons à des fonctions
+        #self.NomBouton.clicked.connect(self.NomFonction)
+        
+        self.buttonCV.clicked.connect(self.desactiveCC)
+        
+    def desactiveCC(self):
+            self.buttonCC.setEnabled(False)
+                
+        
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
