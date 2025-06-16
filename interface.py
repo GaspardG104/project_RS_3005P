@@ -6,16 +6,11 @@ Created on Thu Jun 12 14:03:55 2025
 """
 
 import compiler
-
 import sys
-# Bibliothèque pour carte Arduino
-try:
-    from pyfirmata import Arduino, util
-except:
-    print("Pas de librairie arduino, merci de l'installer (pip install pyfirmata)")
 
 # Import de la partie graphique dessinée dans designer
 from alimlabo import Ui_MainWindow
+from classesecond import PyLedLabel
 
 # Import des widgets utilisés
 from PyQt5.QtWidgets import (
@@ -40,13 +35,13 @@ class Window(QMainWindow, Ui_MainWindow):
         #self.NomBouton.clicked.connect(self.NomFonction)
         
         #fichier led.h / promotion style sheet
-        self.buttonCV.clicked.connect(self.desactiveCC)
-        self.buttonCC.clicked.connect(self.desactiveCV)
-        # self.buttonLOCK.clicked.connect(self.bloquePanneau)
+        self.buttonCV.clicked.connect(self.actionCV)
+        self.buttonCC.clicked.connect(self.actionCC)
+        self.buttonLOCK.clicked.connect(self.bloquePanneau)
         # self.btnReini.clicked.connect(self.reiniTab)
         # self.btnEnregistrer.clicked.connect(self.enregTab)
         # self.btnPause.clicked.connect(self.pauseTab) jsp comment y afficher à la place du bouton commencer
-        # self.btnOnoff.clicked.connect(self.onoff)
+        self.btnOnoff.clicked.connect(self.onoff)
         self.dialVoltage.valueChanged.connect(self.majDialV)
         self.dialAmpere.valueChanged.connect(self.majDialA)
         # self.realVoltage.valueChanged.connect(self.majRealV)        
@@ -81,13 +76,30 @@ class Window(QMainWindow, Ui_MainWindow):
 
         
 
-    def desactiveCC(self):
-        self.buttonCV.setEnabled(True)
-        self.led.setState(0)
-    def desactiveCV(self):
-        self.led.setState(1)
-        self.buttonCC.setEnabled(True)
-        # Le bouton ne reviens pas à modifier
+    def actionCV(self):
+        self.led_cv.setState(0)
+        self.led_cc.setState(2)
+    def actionCC(self):
+        self.led_cc.setState(0)
+        self.led_cv.setState(2)      
+    def bloquePanneau(self):
+        if (self.buttonLOCK.isChecked()):
+            self.led_lock.setState(0)
+            self.dialVoltage.setEnabled(False)
+            self.dialAmpere.setEnabled(False)
+            self.dialVoltage.setNotchesVisible(False)
+            self.dialAmpere.setNotchesVisible(False)
+        else:
+            self.led_lock.setState(1)
+            self.dialVoltage.setEnabled(True)
+            self.dialAmpere.setEnabled(True)
+            self.dialVoltage.setNotchesVisible(True)
+            self.dialAmpere.setNotchesVisible(True)
+        
+        
+
+        
+        # Le bouton ne reviens pas, à modifier
         
     def majDialV(self,event):
         self.nbVoltage.display(event)
@@ -99,12 +111,18 @@ class Window(QMainWindow, Ui_MainWindow):
         self.btnPause.setEnabled(True) #doit remplacer le bouton 
         self.btnEnregistrer.setEnabled(True)
         self.btnReini.setEnabled(True)
+        self.nbAmpere.clearFocus()
         
 
 
     # def boutonGraph(self):
     #     self.action
-            
+    
+    def onoff(self):
+        self.buttonCC.setEnabled(False)
+        self.buttonCV.setEnabled(False)
+        self.buttonLOCK.setEnabled(False)
+
     
                 
         

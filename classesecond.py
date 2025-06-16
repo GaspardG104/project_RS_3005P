@@ -21,10 +21,10 @@ class PyLedLabel(QLabel):
  
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
+        self.setText("")
         self.setFixedSize(self._SIZE, self._SIZE)
         # Définit l'état par défaut sur StateOkBlue
         self.setState(self.StateOkBlue)
- 
     @pyqtSlot(int)
     def setState(self, state: int):
         """
@@ -32,10 +32,10 @@ class PyLedLabel(QLabel):
         """
         # print(f"setState: {state}")
         if state == self.StateOk:
-            self.setStyleSheet(self._greenSS)
-        elif state == self.StateWarning:
+            self.setStyleSheet(self._greenSS)                                                                                                                                                                 
+        elif state == self.StateWarning:                    
             self.setStyleSheet(self._orangeSS)
-        elif state == self.StateError:
+        elif state == self.StateError:      
             self.setStyleSheet(self._redSS)
         elif state == self.StateOkBlue:
             self.setStyleSheet(self._blueSS)
@@ -50,8 +50,4 @@ class PyLedLabel(QLabel):
         True correspond à StateOk, False à StateError.
         """
         self.setState(self.StateOk if state else self.StateError)
- 
-# Exemple d'utilisation (pour tester la classe)
-if __name__ == "__main__":
-    from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton
-    import sys
+    
