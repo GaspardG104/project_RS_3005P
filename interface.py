@@ -68,14 +68,14 @@ class Window(QMainWindow, Ui_MainWindow):
         # Liste des couleurs de courbes
         self.tab_couleur = ['b','g','r','c', 'm','y','black']
         self.col = -2
-        self.colonne_Labels = ['Temps (s)','Tension (Ω)']
+        self.colonne_Labels = ['Temps (s)','Tension (V)']
         self.row = 0
         # Couleur du fond du graphe
         self.TabTension.setBackground("w")
         # Entête du graphe 
         self.TabTension.setTitle('Monitoring de la tension', color ='b')
         # Titre de l'axe vertical
-        self.TabTension.setLabel('left','Tension (Ω)', color ='black')
+        self.TabTension.setLabel('left','Tension (V)', color ='black')
         # Titre de l'axe horizontal
         self.TabTension.setLabel('bottom','Temps (s)', color ='black')
         self.TabTension.showGrid(x = True, y = True, alpha = 0.3)        
@@ -162,7 +162,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.Donnees.insertColumn(self.col + 1)
         # Définition des entêtes de colonnes
         self.colonne_Labels.append('Temps (s)')
-        self.colonne_Labels.append('Tension ()')
+        self.colonne_Labels.append('Tension (V)')
         self.Donnees.setHorizontalHeaderLabels(self.colonne_Labels)
         
         # boucle d'incrémentation des couleurs des courbes
