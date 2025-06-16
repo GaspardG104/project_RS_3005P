@@ -182,7 +182,7 @@ class PowerSupply:
 with PowerSupply() as psu:
     # print("Actual voltage", psu.get_actual_voltage())
     # print("Set voltage to 1V")
-    psu.set_voltage(1)
+    psu.set_voltage(0)
     psu.close()
     # print("Actual voltage", psu.get_actual_voltage())
     # print("Set current to to 1A")

@@ -38,21 +38,27 @@ class Window(QMainWindow, Ui_MainWindow):
         self.buttonCV.clicked.connect(self.actionCV)
         self.buttonCC.clicked.connect(self.actionCC)
         self.buttonLOCK.clicked.connect(self.bloquePanneau)
-        # self.btnReini.clicked.connect(self.reiniTab)
+        self.btnCommencer.clicked.connect(self.TimerStartMesure)
+        self.btnCommencer.clicked.connect(self.actionCommencer)
+        #self.btnReini.clicked.connect(self.reiniTab)
+        
         # self.btnEnregistrer.clicked.connect(self.enregTab)
-        # self.btnPause.clicked.connect(self.pauseTab) jsp comment y afficher à la place du bouton commencer
+        # self.self.btnArret.clicked.connect(self.Arret)
+        
         self.btnOnoff.clicked.connect(self.onoff)
         self.dialVoltage.valueChanged.connect(self.majDialV)
         self.dialAmpere.valueChanged.connect(self.majDialA)
         # self.realVoltage.valueChanged.connect(self.majRealV)        
         # self.realAmpere.valueChanged.connect(self.majRealA)
 
-    # # On créé des Timer pour les tâches qui se répètent toutes les X ms
-    # # Il faut démarrer le timer avec un start !
-    #     self.refresh = QTimer()
-    #     self.refresh.timeout.connect(self.refreshData)
-    #     self.refresh.start(1000)
-    
+        # On créé des Timer pour les tâches qui se répètent toutes les X ms
+        # Il faut démarrer le timer avec un start !
+        self.timerMesure = QTimer()
+        self.timerMesure.timeout.connect(self.read_Data_Mesure)
+        
+        self.checkBoxSimu.stateChanged.connect(self.ChangeMode)
+        self.spinBox.valueChanged.connect(self.TimerStartMesure)
+        
     
     #tableau graph tension
         self.Temps = []
@@ -119,13 +125,124 @@ class Window(QMainWindow, Ui_MainWindow):
     #     self.action
     
     def onoff(self):
-        self.buttonCC.setEnabled(False)
-        self.buttonCV.setEnabled(False)
-        self.buttonLOCK.setEnabled(False)
-
+        self.led_pp.setState(4)
+        self.led_pn.setState(5)
+        self.led_pgdn.setState(6)
+        # self.buttonCC.setEnabled(False)
+        # self.buttonCV.setEnabled(False)
+        # self.buttonLOCK.setEnabled(False)
+        
+    
+    def actionCommencer(self):# se transform en pause
+        self.btnCommencer.setText("Pause")
+        self.btnCommencer.clicked.connect(self.actionPause)
+        # self.btnReini.setEnable(True)
+        # self.btnEnregistrer.setEnable(True)
+        # self.btnArret.setEnable(True)
+        self.btnCommencer.clicked.connect(self.TimerStop)
+        
+        
+    def actionPause(self):#se transforme en commencer 
+        self.btnCommencer.setText("Continuer")
+    
+    def TimerStop(self):
+        self.spinBox.setValue(1000)
+        self.timerMesure.stop()
+        self.Data.appendHtml('Stop Measuring\n')
+            
+            
+    #Tableau de données
+    def TimerStartMesure(self):
+        # Réinitialistaion des listes de données
+        self.Temps, self.Tension=[],[]
+        self.col += 2
+        self.row = 0        
+        #Création de nouvelles colonnes de données
+        self.Donnees.insertColumn(self.col)
+        self.Donnees.insertColumn(self.col + 1)
+        # Définition des entêtes de colonnes
+        self.colonne_Labels.append('Temps (s)')
+        self.colonne_Labels.append('Tension ()')
+        self.Donnees.setHorizontalHeaderLabels(self.colonne_Labels)
+        
+        # boucle d'incrémentation des couleurs des courbes
+        if self.color < len(self.tab_couleur)-1:
+            self.color += 1
+        else :
+            self.color = 0
+        # Démarrage du timer d'acquisition
+        self.timerMesure.start(self.spinBox.value())
+        if(self.checkBoxSimu.isChecked()):
+            self.Data.appendHtml('Start Simulation at {} ms\n'.format(
+                self.spinBox.value()))
+        else:
+            self.Data.appendHtml('Start Measuring at {} ms\n'.format(
+                self.spinBox.value()))
+        
     
                 
+    def read_Data_Mesure(self):
+        # Génération de l'axe X
+        if len(self.Temps) > 0 and self.row > 0:
+            # Si le point 0 existe, on créé le nouveau point en ajoutant le
+            # point précédent à la valeur de la vitesse d'acquisition
+            self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
+        else:
+            self.Temps.append(0)
+    
+        # Si on est en mode simu, on ajoute des points aléatoires
+        if(self.checkBoxSimu.isChecked()):
+            self.Tension.append(random.uniform(0, 2) + 19)
+        # Sinon on récupère les valeurs de l'alimentation
         
+#A modifier pour la liaison avec l'alimentation de laboratoire
+        
+        # else:
+        #     try:
+        #         signalCTN = self.signal_A0.read()
+        #         Rref = 1000                          
+        #         R = Rref * signalCTN / (1 - signalCTN) #
+        #         R0 = 950 # paramètre étalonnage - Résistance à T0 25°C soit 298 K
+        #         T0 = 298 # 28°C
+        #         beta = 4070   # gap de la thermistance
+        #         T = 1 / (log(R/R0) / beta + 1/T0) - 273 # Loi d'étalonnage de la thermistance
+        #         self.Temperature.append(T)
+        #     except Exception:
+        #         self.Data.appendHtml(
+        #             "<b style='color:red'>Erreur de mesure</b>")
+    
+    
+        # Affichage de la courbe
+        self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[self.color]))
+        #self.TabTension.show()
+        row = self.Donnees.rowCount()
+        # print(self.row, row)
+        if self.row >= row:
+            self.Donnees.insertRow(row)
+        self.Donnees.setItem(self.row,self.col,
+                             QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
+        self.Donnees.setItem(self.row,self.col+1,
+                             QTableWidgetItem("{:.2f}".format(self.Tension[-1])))
+        self.row += 1        
+        
+    def reiniTab(self):
+            while self.Donnees.rowCount() > 0:
+                self.Donnees.removeRow(0)
+            while self.Donnees.columnCount() > 0:
+                self.Donnees.removeColumn(0)
+
+            self.col = -2
+            self.row = 0
+            self.Data.appendHtml('Tableau effacé\n')
+
+    def ChangeMode(self, checkState):
+        # Test si la checkbox est cochée
+        if (checkState == Qt.Checked):
+            # Modification de la valeur mini de la spinbox
+            self.spinBox.setMinimum(10)
+        else:
+            self.spinBox.setMinimum(500)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
