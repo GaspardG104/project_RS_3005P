@@ -85,7 +85,7 @@ class Window(QMainWindow, Ui_MainWindow):
     def actionCV(self):
         self.led_cv.setState(0)
         self.led_cc.setState(2)
-    def actionCC(self):
+    def actionCC(self):# ne pas oublier que le cv bloque le cc
         self.led_cc.setState(0)
         self.led_cv.setState(2)      
     def bloquePanneau(self):
@@ -134,16 +134,20 @@ class Window(QMainWindow, Ui_MainWindow):
         
     
     def actionCommencer(self):# se transform en pause
+        self.btnCommencer.clicked.connect(self.TimerStop)    
         self.btnCommencer.setText("Pause")
         self.btnCommencer.clicked.connect(self.actionPause)
         # self.btnReini.setEnable(True)
         # self.btnEnregistrer.setEnable(True)
         # self.btnArret.setEnable(True)
-        self.btnCommencer.clicked.connect(self.TimerStop)
+        while (self.actionPause.clicked == False):
+            self.timerMesure.sleep()
         
         
     def actionPause(self):#se transforme en commencer 
         self.btnCommencer.setText("Continuer")
+        self.timerMesure.sleep(False)
+        self.Data.appendHtml('Measuring\n')
     
     def TimerStop(self):
         self.spinBox.setValue(1000)
@@ -226,14 +230,14 @@ class Window(QMainWindow, Ui_MainWindow):
         self.row += 1        
         
     def reiniTab(self):
-            while self.Donnees.rowCount() > 0:
-                self.Donnees.removeRow(0)
-            while self.Donnees.columnCount() > 0:
-                self.Donnees.removeColumn(0)
+        while self.Donnees.rowCount() > 0:
+            self.Donnees.removeRow(0)
+        while self.Donnees.columnCount() > 0:
+            self.Donnees.removeColumn(0)
 
-            self.col = -2
-            self.row = 0
-            self.Data.appendHtml('Tableau effacé\n')
+        self.col = -2
+        self.row = 0
+        self.Data.appendHtml('Tableau effacé\n')
 
     def ChangeMode(self, checkState):
         # Test si la checkbox est cochée
