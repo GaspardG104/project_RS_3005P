@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'C:\wamp\www\project_RS_3005P\alimlabo.ui'
+# Form implementation generated from reading ui file 'C:\Users\gaspard.guidetti\Desktop\stage\projets\projet GUI power supply\project_RS_3005P\alimlabo.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.10
 #
@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1724, 924)
+        MainWindow.resize(1700, 928)
         MainWindow.setToolTip("")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setEnabled(True)
@@ -25,7 +25,7 @@ class Ui_MainWindow(object):
         self.btnOnoff.setMouseTracking(False)
         self.btnOnoff.setText("")
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("C:\\wamp\\www\\project_RS_3005P\\Simpleicons_Interface_power-symbol-1.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap("C:\\Users\\gaspard.guidetti\\Desktop\\stage\\projets\\projet GUI power supply\\project_RS_3005P\\Simpleicons_Interface_power-symbol-1.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.btnOnoff.setIcon(icon)
         self.btnOnoff.setCheckable(True)
         self.btnOnoff.setAutoRepeat(False)
@@ -262,7 +262,7 @@ class Ui_MainWindow(object):
         self.led_pgdn.setGeometry(QtCore.QRect(350, 720, 41, 41))
         self.led_pgdn.setObjectName("led_pgdn")
         self.Donnees = QtWidgets.QTableWidget(self.centralwidget)
-        self.Donnees.setGeometry(QtCore.QRect(1110, 70, 491, 743))
+        self.Donnees.setGeometry(QtCore.QRect(1110, 82, 461, 731))
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -310,9 +310,16 @@ class Ui_MainWindow(object):
         self.btnArret.setEnabled(False)
         self.btnArret.setGeometry(QtCore.QRect(970, 370, 111, 91))
         self.btnArret.setObjectName("btnArret")
+        self.temps_ms = QtWidgets.QLabel(self.centralwidget)
+        self.temps_ms.setGeometry(QtCore.QRect(520, 470, 81, 41))
+        self.temps_ms.setObjectName("temps_ms")
+        self.btnReiniGra = QtWidgets.QPushButton(self.centralwidget)
+        self.btnReiniGra.setEnabled(False)
+        self.btnReiniGra.setGeometry(QtCore.QRect(500, 70, 81, 51))
+        self.btnReiniGra.setObjectName("btnReiniGra")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1724, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1700, 21))
         self.menubar.setObjectName("menubar")
         self.menutt = QtWidgets.QMenu(self.menubar)
         self.menutt.setObjectName("menutt")
@@ -409,6 +416,8 @@ class Ui_MainWindow(object):
         self.label.setText(_translate("MainWindow", "Port COM :"))
         self.checkBoxSimu.setText(_translate("MainWindow", "Simulation"))
         self.btnArret.setText(_translate("MainWindow", "Arreter"))
+        self.temps_ms.setText(_translate("MainWindow", "Temps(ms) :"))
+        self.btnReiniGra.setText(_translate("MainWindow", "Reinistialiser"))
         self.menutt.setTitle(_translate("MainWindow", "Fichier"))
         self.menuParam_tres.setTitle(_translate("MainWindow", "Parametres"))
         self.menuLangue.setTitle(_translate("MainWindow", "Langue"))

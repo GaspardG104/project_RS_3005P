@@ -38,16 +38,19 @@ class Window(QMainWindow, Ui_MainWindow):
         self.buttonCV.clicked.connect(self.actionCV)
         self.buttonCC.clicked.connect(self.actionCC)
         self.buttonLOCK.clicked.connect(self.bloquePanneau)
-        self.btnCommencer.clicked.connect(self.TimerStartMesure)
-        self.btnCommencer.clicked.connect(self.actionCommencer)
-        #self.btnReini.clicked.connect(self.reiniTab)
         
-        # self.btnEnregistrer.clicked.connect(self.enregTab)
-        # self.self.btnArret.clicked.connect(self.Arret)
+        self.btnCommencer.clicked.connect(self.creationGraphe)
+    
+
+        self.btnReini.clicked.connect(self.reiniTab)       
+        self.btnEnregistrer.clicked.connect(self.enregTab)
+        # self.btnArret.clicked.connect(self.Arret)
+        self.btnReiniGra.clicked.connect(self.reiniGraphique)
         
         self.btnOnoff.clicked.connect(self.onoff)
         self.dialVoltage.valueChanged.connect(self.majDialV)
         self.dialAmpere.valueChanged.connect(self.majDialA)
+        
         # self.realVoltage.valueChanged.connect(self.majRealV)        
         # self.realAmpere.valueChanged.connect(self.majRealA)
 
@@ -56,8 +59,10 @@ class Window(QMainWindow, Ui_MainWindow):
         self.timerMesure = QTimer()
         self.timerMesure.timeout.connect(self.read_Data_Mesure)
         
+        self.test=0
+        
         self.checkBoxSimu.stateChanged.connect(self.ChangeMode)
-        self.spinBox.valueChanged.connect(self.TimerStartMesure)
+        #self.spinBox.valueChanged.connect(self.TimerStartMesure)
         
     
     #tableau graph tension
@@ -80,14 +85,86 @@ class Window(QMainWindow, Ui_MainWindow):
         self.TabTension.setLabel('bottom','Temps (s)', color ='black')
         self.TabTension.showGrid(x = True, y = True, alpha = 0.3)        
 
+
+    
+    
+    def actionPause(self):
+       return 0
+
         
+    
+
+    def creationGraphe(self):
+        self.btnCommencer.clicked.connect(self.actionPause)
+        self.btnCommencer.setText('Pause')    
+        self.TimerStartMesure()
+
+        #self.Quitter.clicked.connect(lambda: self.Mclose())
+#        self.Data.appendHtml("Initialisation Carte")
+        # try except permet d'intercepter les erreurs et évite de terminer le
+        # programme de façon "brutale", ex : on peut essayer de se connecter
+        # à un port COM et si celui-ci ne répond pas, on essaie les autres
+        # try:
+        #     self.statusBar.showMessage("Tentative connexion port " +
+        #                                str(self.spinBox_COM.value()), 5000)
+        #     self.carte = Arduino('COM' + str(self.spinBox_COM.value()))
+        # except Exception as e:
+        #     self.Data.appendHtml(str(e) + " port " +
+        #                                str(self.spinBox_COM.value()))
+        #     # On va tenter sur les port COM 0 à 9 de se connecter
+        #     for i in range(10):
+        #         try:
+        #             self.carte = Arduino('COM'+str(i))
+        #             print("next")
+        #         except Exception:
+        #             self.statusBar.showMessage(
+        #                 "Tentative connexion port {}\n".format(i), 5000)
+        #             #self.Data.appendHtml("Essai port {}\n".format(i))
+        #             continue
+        #         break
+        #     if(i == 9):
+        #         self.statusBar.showMessage("Aucune Carte Trouvée !", 5000)
+        #         self.Data.appendHtml(
+        #             "<b style='color:red'>Aucune Carte Trouvée !</b>")
+        #         self.carte = None
+        #         return
+        # self.statusBar.showMessage("Connected", 5000)
+        # acquisition = util.Iterator(self.carte)
+        # acquisition.start()
+        # # On vérifie que le numéro d'entrée est correct
+        # try:
+        #     self.signal_A0 = self.carte.get_pin('a:0:i')
+        # except Exception as e:
+        #     self.Data.appendHtml(
+        #         "<b style='color:red'>Carte pas OK !"+str(e)+"</b>")
+        #     try:
+        #         self.carte.exit()
+        #     except Exception as e:
+        #         self.Data.appendHtml("<b style='color:red'>"+str(e)+" !</b>")
+        #     self.carte = None
+        #     return
+        # # On modifie la valeur minimum de la vitesse d'acquistion
+        # # Pour modifier une propriété, on ajoute set
+        # self.spinBox.setMinimum(500)
+        # self.spinBox.setValue(1000)
+        # self.spinBox.setSingleStep(500)
+        # self.Data.appendHtml("Carte prête")
+        # # On active la checkBox pour changer de mode
+        # self.checkBoxSimu.setEnabled(True)
+
+
+
+
+
 
     def actionCV(self):
         self.led_cv.setState(0)
         self.led_cc.setState(2)
+        
     def actionCC(self):# ne pas oublier que le cv bloque le cc
         self.led_cc.setState(0)
         self.led_cv.setState(2)      
+        
     def bloquePanneau(self):
         if (self.buttonLOCK.isChecked()):
             self.led_lock.setState(0)
@@ -102,10 +179,7 @@ class Window(QMainWindow, Ui_MainWindow):
             self.dialVoltage.setNotchesVisible(True)
             self.dialAmpere.setNotchesVisible(True)
         
-        
-
-        
-        # Le bouton ne reviens pas, à modifier
+   
         
     def majDialV(self,event):
         self.nbVoltage.display(event)
@@ -113,17 +187,12 @@ class Window(QMainWindow, Ui_MainWindow):
     def majDialA(self,event):
         self.nbAmpere.display(event)
         
-    def enregTab(self):
-        self.btnPause.setEnabled(True) #doit remplacer le bouton 
-        self.btnEnregistrer.setEnabled(True)
-        self.btnReini.setEnabled(True)
-        self.nbAmpere.clearFocus()
+    # def enregTab(self):
+    #     self.btnPause.setEnabled(True)
+    #     self.btnEnregistrer.setEnabled(True)
+    #     self.btnReini.setEnabled(True)
+    #     self.nbAmpere.clearFocus()       
         
-
-
-    # def boutonGraph(self):
-    #     self.action
-    
     def onoff(self):
         self.led_pp.setState(4)
         self.led_pn.setState(5)
@@ -131,32 +200,23 @@ class Window(QMainWindow, Ui_MainWindow):
         # self.buttonCC.setEnabled(False)
         # self.buttonCV.setEnabled(False)
         # self.buttonLOCK.setEnabled(False)
-        
-    
-    def actionCommencer(self):# se transform en pause
-        self.btnCommencer.clicked.connect(self.TimerStop)    
-        self.btnCommencer.setText("Pause")
-        self.btnCommencer.clicked.connect(self.actionPause)
-        # self.btnReini.setEnable(True)
-        # self.btnEnregistrer.setEnable(True)
-        # self.btnArret.setEnable(True)
-        while (self.actionPause.clicked == False):
-            self.timerMesure.sleep()
-        
-        
-    def actionPause(self):#se transforme en commencer 
-        self.btnCommencer.setText("Continuer")
-        self.timerMesure.sleep(False)
-        self.Data.appendHtml('Measuring\n')
+
     
     def TimerStop(self):
-        self.spinBox.setValue(1000)
+        #self.spinBox.setValue(1000)
         self.timerMesure.stop()
-        self.Data.appendHtml('Stop Measuring\n')
-            
-            
+
+    
     #Tableau de données
     def TimerStartMesure(self):
+        self.btnReini.setEnabled(True)
+        self.btnEnregistrer.setEnabled(True)
+        self.btnArret.setEnabled(True)
+        self.btnReiniGra.setEnabled(True)
+        
+        
+        
+        
         # Réinitialistaion des listes de données
         self.Temps, self.Tension=[],[]
         self.col += 2
@@ -182,54 +242,56 @@ class Window(QMainWindow, Ui_MainWindow):
         else:
             self.Data.appendHtml('Start Measuring at {} ms\n'.format(
                 self.spinBox.value()))
-        
+    
     
                 
     def read_Data_Mesure(self):
         # Génération de l'axe X
-        if len(self.Temps) > 0 and self.row > 0:
-            # Si le point 0 existe, on créé le nouveau point en ajoutant le
-            # point précédent à la valeur de la vitesse d'acquisition
-            self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
-        else:
-            self.Temps.append(0)
-    
-        # Si on est en mode simu, on ajoute des points aléatoires
-        if(self.checkBoxSimu.isChecked()):
-            self.Tension.append(random.uniform(0, 2) + 19)
-        # Sinon on récupère les valeurs de l'alimentation
+        if (self.test==0):
+            if len(self.Temps) > 0 and self.row > 0:
+                # Si le point 0 existe, on créé le nouveau point en ajoutant le
+                # point précédent à la valeur de la vitesse d'acquisition
+                self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
+            else:
+                self.Temps.append(0)
         
-#A modifier pour la liaison avec l'alimentation de laboratoire
+            # Si on est en mode simu, on ajoute des points aléatoires
+            if(self.checkBoxSimu.isChecked()):
+                self.Tension.append(random.uniform(0, 2) + 19)
+            # Sinon on récupère les valeurs de l'alimentation
+            
+    #A modifier pour la liaison avec l'alimentation de laboratoire
+            
+            # else:
+            #     try:
+            #         signalCTN = self.signal_A0.read()
+            #         Rref = 1000                          
+            #         R = Rref * signalCTN / (1 - signalCTN) #
+            #         R0 = 950 # paramètre étalonnage - Résistance à T0 25°C soit 298 K
+            #         T0 = 298 # 28°C
+            #         beta = 4070   # gap de la thermistance
+            #         T = 1 / (log(R/R0) / beta + 1/T0) - 273 # Loi d'étalonnage de la thermistance
+            #         self.Temperature.append(T)
+            #     except Exception:
+            #         self.Data.appendHtml(
+            #             "<b style='color:red'>Erreur de mesure</b>")
         
-        # else:
-        #     try:
-        #         signalCTN = self.signal_A0.read()
-        #         Rref = 1000                          
-        #         R = Rref * signalCTN / (1 - signalCTN) #
-        #         R0 = 950 # paramètre étalonnage - Résistance à T0 25°C soit 298 K
-        #         T0 = 298 # 28°C
-        #         beta = 4070   # gap de la thermistance
-        #         T = 1 / (log(R/R0) / beta + 1/T0) - 273 # Loi d'étalonnage de la thermistance
-        #         self.Temperature.append(T)
-        #     except Exception:
-        #         self.Data.appendHtml(
-        #             "<b style='color:red'>Erreur de mesure</b>")
-    
-    
-        # Affichage de la courbe
-        self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[self.color]))
-        #self.TabTension.show()
-        row = self.Donnees.rowCount()
-        # print(self.row, row)
-        if self.row >= row:
-            self.Donnees.insertRow(row)
-        self.Donnees.setItem(self.row,self.col,
-                             QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
-        self.Donnees.setItem(self.row,self.col+1,
-                             QTableWidgetItem("{:.2f}".format(self.Tension[-1])))
-        self.row += 1        
+        
+            # Affichage de la courbe
+            self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[self.color]))
+            #self.TabTension.show()
+            row = self.Donnees.rowCount()
+            # print(self.row, row)
+            if self.row >= row:
+                self.Donnees.insertRow(row)
+            self.Donnees.setItem(self.row,self.col,
+                                  QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
+            self.Donnees.setItem(self.row,self.col+1,
+                                  QTableWidgetItem("{:.2f}".format(self.Tension[-1])))
+            self.row += 1        
         
     def reiniTab(self):
+        self.Donnees.clear()
         while self.Donnees.rowCount() > 0:
             self.Donnees.removeRow(0)
         while self.Donnees.columnCount() > 0:
@@ -237,8 +299,61 @@ class Window(QMainWindow, Ui_MainWindow):
 
         self.col = -2
         self.row = 0
-        self.Data.appendHtml('Tableau effacé\n')
+#        self.Data.appendHtml('Tableau effacé\n')
+        
+    def reiniGraphique(self):
+        self.TabTension.clear()
 
+
+        
+        
+        
+    def enregTab(self):
+        """
+        Pour choisir un dossier d'enregistrement
+        dir_name = QFileDialog.getExistingDirectory()
+        print(dir_name)
+        """
+        file_name = "data" + QDateTime.currentDateTime().toString("_yyyy-MM-dd_hh.mm.ss")
+        file_name, Type = QFileDialog.getSaveFileName(
+            self, 'Save data', file_name,
+            'Text file (*.txt);;CSV file (*.csv);;All files()')
+        if(file_name == ""):
+            self.Data.appendHtml(
+                "<b style='color:red'>Enregistrement annulé</b>")
+            return
+        with open(file_name, "w") as file:
+            # zip permet d'extraire 2 valeurs de 2 listes
+            for x, y in zip(self.Temps, self.Tension):
+                file.write("{} {}\n".format(x, y))
+        path = pathlib.Path(file_name)
+        self.Data.appendHtml(path.name +
+                     ' : Enregistrement de {} points fait\n'.format(
+                         len(self.Temps)))
+        
+        selected = self.Donnees.selectedRanges()
+        if len(selected) > 0:
+            texte = ""
+            ligne = ""
+            with open(file_name+"Selected.txt", "w") as file:
+                for i in range(selected[0].topRow(), selected[0].bottomRow() + 1):
+                    for j in range(selected[0].leftColumn(), selected[0].rightColumn() + 1):
+                        if self.Donnees.item(i, j) != None:
+                            texte += self.Donnees.item(i, j).text() + "\t"
+                            ligne += self.Donnees.item(i, j).text() + "\t"
+                        else:
+                            # Sur les colonnes de temps, on ajoute le temps
+                            if j%2==0:
+                                texte += str(i*(float(self.Donnees.item(1, j).text())-float(self.Donnees.item(0, j).text())))+"\t"
+                                ligne += str(i*(float(self.Donnees.item(1, j).text())-float(self.Donnees.item(0, j).text())))+"\t"
+                            else:
+                                texte += "0\t"
+                                ligne += "0\t"
+                                
+                    texte = texte[:-1] + "\n"  # le [:-1] élimine le '\t' en trop
+                    file.write(ligne[:-1] + "\n")
+                    ligne = ""
+                QApplication.clipboard().setText(texte)
     def ChangeMode(self, checkState):
         # Test si la checkbox est cochée
         if (checkState == Qt.Checked):
@@ -253,3 +368,4 @@ if __name__ == "__main__":
     win = Window()
     win.show()
     sys.exit(app.exec())
+

@@ -151,11 +151,6 @@ class PowerSupply:
 #modif du mercredi 11 juin
 
 
-
-
-#j'esssaye de coder en anglais, je m'excuse d'avance pour l'orthographe et la 
-#grammaire
-
             
     
     def get_info_output(self):
