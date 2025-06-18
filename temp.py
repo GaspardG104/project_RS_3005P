@@ -148,9 +148,17 @@ class PowerSupply:
    #     status = int(self.query("STATUS?"))
    #     return status
     
-#modif du mercredi 11 juin
 
-
+    def get_ocp(self):
+        onoff = float(self.write("OCP"))
+        return onoff
+    def set_ocp(self, onoff):
+        if onoff == 1:
+            self.write("OCP1")
+        else:
+            self.write("OCP0")
+    
+        
             
     
     def get_info_output(self):
@@ -178,7 +186,9 @@ with PowerSupply() as psu:
     # print("Actual voltage", psu.get_actual_voltage())
     # print("Set voltage to 1V")
     psu.set_voltage(0)
+    psu.set_ocp(1)
     psu.close()
+    
     # print("Actual voltage", psu.get_actual_voltage())
     # print("Set current to to 1A")
     # psu.set_current(0)

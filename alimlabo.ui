@@ -143,6 +143,12 @@
        <property name="maximum">
         <number>30</number>
        </property>
+       <property name="singleStep">
+        <number>1</number>
+       </property>
+       <property name="wrapping">
+        <bool>false</bool>
+       </property>
        <property name="notchesVisible">
         <bool>true</bool>
        </property>
@@ -157,10 +163,13 @@
         <number>1</number>
        </property>
        <property name="maximum">
-        <number>30</number>
+        <number>5</number>
        </property>
        <property name="value">
         <number>1</number>
+       </property>
+       <property name="wrapping">
+        <bool>false</bool>
        </property>
        <property name="notchesVisible">
         <bool>true</bool>
@@ -409,31 +418,6 @@
     </property>
     <property name="text">
      <string>Voltage</string>
-    </property>
-   </widget>
-   <widget class="QLCDNumber" name="realVoltage">
-    <property name="geometry">
-     <rect>
-      <x>600</x>
-      <y>730</y>
-      <width>221</width>
-      <height>36</height>
-     </rect>
-    </property>
-    <property name="layoutDirection">
-     <enum>Qt::LeftToRight</enum>
-    </property>
-    <property name="smallDecimalPoint">
-     <bool>true</bool>
-    </property>
-    <property name="digitCount">
-     <number>4</number>
-    </property>
-    <property name="segmentStyle">
-     <enum>QLCDNumber::Filled</enum>
-    </property>
-    <property name="value" stdset="0">
-     <double>20.000000000000000</double>
     </property>
    </widget>
    <widget class="QLabel" name="label_3">
@@ -923,6 +907,16 @@
     </property>
     <property name="text">
      <string>Reinistialiser</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="realVoltage">
+    <property name="geometry">
+     <rect>
+      <x>610</x>
+      <y>730</y>
+      <width>101</width>
+      <height>31</height>
+     </rect>
     </property>
    </widget>
   </widget>
