@@ -167,74 +167,37 @@ class PowerSupply:
         self.write(f"VSET1:{voltage}")
         
         
+    def set_lock(self, loconoff):
+        if loconoff == 1:
+            self.write("LOCK1\n")
+        else:
+            self.write("LOCK0\n")
         
-        
-    # def get_status(self):
-    #     #essayer avec un string ou 
-    #     status = int(self.query("STATUS?"))
-    #     return status
-    
-#modif du mercredi 11 juin
+    def set_ocp(self, onoff):
+        if onoff == 1:
+            self.write("OCP1")
+        else:
+            self.write("OCP0")
 
 
             
     
-    def get_info_output(self):
-            os = str(self.query("OUT?"))
-            if os==self.query("OUT0"):
-                os = "disconnected"
-            elif os==self.query("OUT1"):
-                os= "connected"
-            else:
-                os= " error"
-            return os
+    # def get_info_output(self):
+    #         os = self.query("STATUS?")
+    #         if (os=="S"):
+    #             os = "connected"
+    #         elif (os==" "):
+    #             os= "disconnected"
+    #         else:
+    #             os= " error"
+    #         return os
     
-    def get_activate_output(self):
-        connexion=bool(self.query("OUT?"))
-        return connexion
-    
-    def set_activate_output(self, bool):
-        self.write("OUT:bool")
-
+    # def set_activate_output(self, outonoff):
+    #     self.write(f"OUT{outonoff}")
         
     
-
-
-with PowerSupply() as psu:
-    # print("Actual voltage", psu.get_actual_voltage())
-    # print("Set voltage to 1V")
-    psu.set_voltage(2)
-    psu.close()
-    # print("Actual voltage", psu.get_actual_voltage())
-    # print("Set current to to 1A")
-    # psu.set_current(0)
-    # print("Actual current", psu.get_actual_current())
-    # print("Actual voltage", psu.get_actual_voltage())
-    # #Remise à zéro
-    # print('remise à zéro')
-    # psu.set_voltage(0)
-    # print("Actual voltage", psu.get_actual_voltage())
-    #psu.set_current(0)
-    # print("Actual current", psu.get_actual_current())
-    #print("Actual statut", psu.get_statut())
-# mercredi----------------------------------------------------------------------
-    #print("Identification", psu.get_idn())
-    #psu.set_activate_output(0)
-    #print("Actual statut of the output : ", psu.get_info_output())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        
+    
 
 
 
@@ -256,7 +219,9 @@ class Window(QMainWindow, Ui_MainWindow):
         self.buttonCV.clicked.connect(self.actionCV)
         self.buttonCC.clicked.connect(self.actionCC)
         self.buttonLOCK.clicked.connect(self.bloquePanneau)
-        
+        self.buttonOCP.clicked.connect(self.actionOCP)
+#        self.indiceOut.clicked.connect(self.desactiveSortie)
+
         self.btnCommencer.clicked.connect(self.creationGraphe)
     
 
@@ -374,25 +339,46 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
 
+    def actionOCP(self):
+        if (self.buttonOCP.isChecked()):
+            with PowerSupply() as psu:
+                psu.set_ocp(1)
+            self.led_ocp.setState(0)
+        else:
+            with PowerSupply() as psu:
+                psu.set_ocp(0)
+            self.led_ocp.setState(1)
+       
+        
+    
+        
+        
 
 
 
     def actionCV(self):
-        self.led_cv.setState(0)
-        self.led_cc.setState(2)
+    #     if 
+            self.led_cv.setState(0)
+            self.led_cc.setState(2)
         
     def actionCC(self):# ne pas oublier que le cv bloque le cc
         self.led_cc.setState(0)
         self.led_cv.setState(2)      
         
+    
+            
     def bloquePanneau(self):
         if (self.buttonLOCK.isChecked()):
+            with PowerSupply() as psu:
+                psu.set_lock(1)
             self.led_lock.setState(0)
             self.dialVoltage.setEnabled(False)
             self.dialAmpere.setEnabled(False)
             self.dialVoltage.setNotchesVisible(False)
             self.dialAmpere.setNotchesVisible(False)
         else:
+            with PowerSupply() as psu:
+                psu.set_lock(0)
             self.led_lock.setState(1)
             self.dialVoltage.setEnabled(True)
             self.dialAmpere.setEnabled(True)
@@ -413,10 +399,17 @@ class Window(QMainWindow, Ui_MainWindow):
             
     def majDialA(self,event):
         self.nbAmpere.display(event)
+        
+    def majDialAlimA(self, value):
+          with PowerSupply() as psu:
+              psu.set_current(value)        
     
     def realV(self, value):
         with PowerSupply() as psu:
             self.realVoltage.display(psu.get_actual_voltage())
+            
+            
+        
         
              
               
@@ -429,6 +422,22 @@ class Window(QMainWindow, Ui_MainWindow):
         # self.buttonCV.setEnabled(False)
         # self.buttonLOCK.setEnabled(False)
 
+
+    # def desactiveSortie(self):
+    #     if self.indiceOut.isChecked():
+    #         with PowerSupply() as psu:
+    #             psu.set_activate_output("0")
+    #             print("sortie",psu.get_info_output())
+    #     else:
+    #         with PowerSupply() as psu:
+    #             psu.set_activate_output("1")
+    #             print("sortie",psu.get_info_output())
+    
+
+    
+    
+    
+    
     
     def TimerStop(self):
         #self.spinBox.setValue(1000)
@@ -474,18 +483,17 @@ class Window(QMainWindow, Ui_MainWindow):
     
                 
     def read_Data_Mesure(self):
-        # Génération de l'axe X
-        if (self.test==0):
-            if len(self.Temps) > 0 and self.row > 0:
-                # Si le point 0 existe, on créé le nouveau point en ajoutant le
-                # point précédent à la valeur de la vitesse d'acquisition
-                self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
-            else:
-                self.Temps.append(0)
+        # Génération de l'axe X 
+        if len(self.Temps) > 0 and self.row > 0:
+            # Si le point 0 existe, on créé le nouveau point en ajoutant le
+            # point précédent à la valeur de la vitesse d'acquisition
+            self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
+        else:
+            self.Temps.append(0)
         
-            # Si on est en mode simu, on ajoute des points aléatoires
-            if(self.checkBoxSimu.isChecked()):
-                self.Tension.append(random.uniform(0, 2) + 19)
+        # Si on est en mode simu, on ajoute des points aléatoires
+        if(self.checkBoxSimu.isChecked()):
+            self.Tension.append(random.uniform(0, 2) + 19)
             # Sinon on récupère les valeurs de l'alimentation
             
     #A modifier pour la liaison avec l'alimentation de laboratoire

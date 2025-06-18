@@ -149,9 +149,7 @@ class PowerSupply:
    #     return status
     
 
-    def get_ocp(self):
-        onoff = float(self.write("OCP"))
-        return onoff
+
     def set_ocp(self, onoff):
         if onoff == 1:
             self.write("OCP1")
@@ -162,34 +160,35 @@ class PowerSupply:
             
     
     def get_info_output(self):
-            os = str(self.query("OUT?"))
-            if os==self.query("OUT0"):
-                os = "disconnected"
-            elif os==self.query("OUT1"):
-                os= "connected"
-            else:
-                os= " error"
-            return os
+            os = str(self.query("STATUS?"))
+            s = os.readline().decode().strip()
+            return s
     
-    def get_activate_output(self):
-        connexion=bool(self.query("OUT?"))
-        return connexion
-    
-    def set_activate_output(self, bool):
-        self.write("OUT:bool")
-
+    def set_activate_output(self, outonoff):
+        self.write(f"OUT{outonoff}")
         
+          
     
+
 
 
 with PowerSupply() as psu:
     # print("Actual voltage", psu.get_actual_voltage())
     # print("Set voltage to 1V")
-    psu.set_voltage(0)
-    psu.set_ocp(1)
+    psu.set_voltage(1)
+    
+    #psu.set_ocp(1)
+    
+    psu.set_activate_output(1)
+    
+    print("sortie",psu.get_info_output())
+    time.sleep(3)
+    
+    print("Actual voltage", psu.get_actual_voltage())
+    
     psu.close()
     
-    # print("Actual voltage", psu.get_actual_voltage())
+    
     # print("Set current to to 1A")
     # psu.set_current(0)
     # print("Actual current", psu.get_actual_current())
