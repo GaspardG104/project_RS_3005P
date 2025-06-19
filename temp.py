@@ -159,16 +159,28 @@ class PowerSupply:
         
             
     
+    # def get_info_output(self):
+    #         os = str(self.query("STATUS?"))
+    #         s = os.readline().decode().strip()
+    #         return s
+    
+    # def set_activate_output(self, outonoff):
+    #     self.write(f"OUT{outonoff}")
+        
+          
     def get_info_output(self):
-            os = str(self.query("STATUS?"))
-            s = os.readline().decode().strip()
-            return s
+            os = self.query("STATUS?")
+            if (os=="S"):
+                os = "connected"
+            elif (os == ""): #commande ni-visa return \12 mais python retourne 
+                os= "disconnected"
+            else:               
+                os= "error"
+            return os
     
     def set_activate_output(self, outonoff):
         self.write(f"OUT{outonoff}")
-        
-          
-    
+            
 
 
 
@@ -176,9 +188,9 @@ with PowerSupply() as psu:
     # print("Actual voltage", psu.get_actual_voltage())
     # print("Set voltage to 1V")
     psu.set_voltage(1)
-    
-    #psu.set_ocp(1)
-    
+    time.sleep(0.001)
+    psu.set_ocp(0)
+    time.sleep(0.001)
     psu.set_activate_output(1)
     
     print("sortie",psu.get_info_output())

@@ -124,8 +124,8 @@ class PowerSupply:
                 break
         self.dev.flush()
         self.idn = self.get_idn()
-        if self.verbose:
-            print(f"Connected to {self.idn}")
+        # if self.verbose:
+        #     print(f"Connected to {self.idn}")
 
     def get_idn(self):
         return self.query("*IDN?")
@@ -211,10 +211,10 @@ class Window(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
-        
+              
         # On associe les cliques sur le bouttons à des fonctions
         #self.NomBouton.clicked.connect(self.NomFonction)
-        
+        self.btnOnoff.clicked.connect(lambda: self.close())
         #fichier led.h / promotion style sheet
         self.buttonCV.clicked.connect(self.actionCV)
         self.buttonCC.clicked.connect(self.actionCC)
@@ -222,20 +222,23 @@ class Window(QMainWindow, Ui_MainWindow):
         self.buttonOCP.clicked.connect(self.actionOCP)
 #        self.indiceOut.clicked.connect(self.desactiveSortie)
 
-        self.btnCommencer.clicked.connect(self.creationGraphe)
+        self.btnCommencer.clicked.connect(self.TimerStartMesure)
     
 
         self.btnReini.clicked.connect(self.reiniTab)       
         self.btnEnregistrer.clicked.connect(self.enregTab)
-#        self.btnArret.clicked.connect(self.arret)
         self.btnReiniGra.clicked.connect(self.reiniGraphique)
         
         self.btnOnoff.clicked.connect(self.onoff)
-        self.dialVoltage.valueChanged.connect(self.majDialV)
-        self.dialVoltage.valueChanged.connect(self.majDialAlimV)
-        self.majDialAlimV(True)
+
+        
+        
+        self.dialVoltage.valueChanged.connect(self.majDialAlimVo)
+        self.dialVoltage.sliderReleased.connect(self.majDialAlimV)
+
+
         self.dialAmpere.valueChanged.connect(self.majDialA)
-        self.realVoltage.valueChanged.connect(self.realV)
+       # self.realVoltage.valueChanged.connect(self.realV)
 
         
 
@@ -252,90 +255,35 @@ class Window(QMainWindow, Ui_MainWindow):
         self.checkBoxSimu.stateChanged.connect(self.ChangeMode)
         #self.spinBox.valueChanged.connect(self.TimerStartMesure)
         
-
+        self.alimRS = None
     #tableau graph tension
         self.Temps = []
         self.Tension = []
+        self.Current=[]
         # Indice de couleur pour les courbes
         self.color = 0
         # Liste des couleurs de courbes
         self.tab_couleur = ['b','g','r','c', 'm','y','black']
-        self.col = -2
-        self.colonne_Labels = ['Temps (s)','Tension (V)']
+        self.col = -3
+        self.colonne_Labels = ['Temps (s)','Tension (V)','Courant (A)']
         self.row = 0
         # Couleur du fond du graphe
         self.TabTension.setBackground("w")
         # Entête du graphe 
         self.TabTension.setTitle('Monitoring de la tension', color ='b')
         # Titre de l'axe vertical
-        self.TabTension.setLabel('left','Tension (V)', color ='black')
+        self.TabTension.setLabel('left','Tension (V) et Courant (A)', color ='black')
         # Titre de l'axe horizontal
         self.TabTension.setLabel('bottom','Temps (s)', color ='black')
         self.TabTension.showGrid(x = True, y = True, alpha = 0.3)        
 
 
     
-    #def arret(self):
         
         
-    
 
-    def creationGraphe(self):
-        self.btnCommencer.setText('Pause')    
-        self.TimerStartMesure()
-        self.btnCommencer.click.connect(self.TimerStop)
-        self.Quitter.clicked.connect(lambda: self.Mclose())
-        self.Data.appendHtml("Initialisation Carte")
-        # try except permet d'intercepter les erreurs et évite de terminer le
-        # programme de façon "brutale", ex : on peut essayer de se connecter
-        # à un port COM et si celui-ci ne répond pas, on essaie les autres
-        # try:
-        #     self.statusBar.showMessage("Tentative connexion port " +
-        #                                str(self.spinBox_COM.value()), 5000)
-        #     self.carte = Arduino('COM' + str(self.spinBox_COM.value()))
-        # except Exception as e:
-        #     self.Data.appendHtml(str(e) + " port " +
-        #                                str(self.spinBox_COM.value()))
-        #     # On va tenter sur les port COM 0 à 9 de se connecter
-        #     for i in range(10):
-        #         try:
-        #             self.carte = Arduino('COM'+str(i))
-        #             print("next")
-        #         except Exception:
-        #             self.statusBar.showMessage(
-        #                 "Tentative connexion port {}\n".format(i), 5000)
-        #             #self.Data.appendHtml("Essai port {}\n".format(i))
-        #             continue
-        #         break
-        #     if(i == 9):
-        #         self.statusBar.showMessage("Aucune Carte Trouvée !", 5000)
-        #         self.Data.appendHtml(
-        #             "<b style='color:red'>Aucune Carte Trouvée !</b>")
-        #         self.carte = None
-        #         return
-        # self.statusBar.showMessage("Connected", 5000)
-        # acquisition = util.Iterator(self.carte)
-        # acquisition.start()
-        # # On vérifie que le numéro d'entrée est correct
-        # try:
-        #     self.signal_A0 = self.carte.get_pin('a:0:i')
-        # except Exception as e:
-        #     self.Data.appendHtml(
-        #         "<b style='color:red'>Carte pas OK !"+str(e)+"</b>")
-        #     try:
-        #         self.carte.exit()
-        #     except Exception as e:
-        #         self.Data.appendHtml("<b style='color:red'>"+str(e)+" !</b>")
-        #     self.carte = None
-        #     return
-        # # On modifie la valeur minimum de la vitesse d'acquistion
-        # # Pour modifier une propriété, on ajoute set
-        # self.spinBox.setMinimum(500)
-        # self.spinBox.setValue(1000)
-        # self.spinBox.setSingleStep(500)
-        # self.Data.appendHtml("Carte prête")
-        # # On active la checkBox pour changer de mode
-        # self.checkBoxSimu.setEnabled(True)
+#    def initAlimRS(self):
+
 
 
 
@@ -357,9 +305,8 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
     def actionCV(self):
-    #     if 
-            self.led_cv.setState(0)
-            self.led_cc.setState(2)
+        self.led_cv.setState(0)
+        self.led_cc.setState(2)
         
     def actionCC(self):# ne pas oublier que le cv bloque le cc
         self.led_cc.setState(0)
@@ -389,32 +336,35 @@ class Window(QMainWindow, Ui_MainWindow):
 
         
         
-    def majDialV(self, event):
-       self.nbVoltage.display(event)        
-             
-    def majDialAlimV(self, value):
-          with PowerSupply() as psu:
-              psu.set_voltage(value)    
+
         
-            
-    def majDialA(self,event):
-        self.nbAmpere.display(event)
-        
-    def majDialAlimA(self, value):
-          with PowerSupply() as psu:
-              psu.set_current(value)        
-    
-    def realV(self, value):
+    def majDialAlimV(self):
+        value=self.dialVoltage.value()
         with PowerSupply() as psu:
-            self.realVoltage.display(psu.get_actual_voltage())
+            psu.set_voltage(value)  
+        
+    def majDialAlimVo(self, value):
+        self.nbVoltage.display(value) 
+         
+         
+         
+         
+         
+    def majDialA(self,event):
+        self.nbAmpere.display(event)          
+            
+   
+    def majDialAlimA(self, value):
+        with PowerSupply() as psu:
+            psu.set_current(value)
             
             
+    # def realV(self, value):
+    #     with PowerSupply() as psu:
+    #         self.realVoltage.display(psu.get_actual_voltage())
+            
         
-        
-             
-              
-        
-    def onoff(self):
+    def onoff(self): # a transformer pour le démarrage de l'appareil
         self.led_pp.setState(4)
         self.led_pn.setState(5)
         self.led_pgdn.setState(6)
@@ -437,50 +387,60 @@ class Window(QMainWindow, Ui_MainWindow):
     
     
     
-    
+
+        
     
     def TimerStop(self):
         #self.spinBox.setValue(1000)
-        self.TimerStartMesure is False
+        self.timerMesure.stop()
 
-    
+    def resdonnees(self):
+        self.Temps, self.Tension, self.Current=[],[],[]
+      #  self.TabTension.plot.cleargraph()
+        
+        
     #Tableau de données
     def TimerStartMesure(self):
-        self.btnReini.setEnabled(True)
-        self.btnEnregistrer.setEnabled(True)
-        self.btnArret.setEnabled(True)
-        self.btnReiniGra.setEnabled(True)
-        
-        
-        
-        
-        # Réinitialistaion des listes de données
-        self.Temps, self.Tension=[],[]
-        self.col += 2
-        self.row = 0        
-        #Création de nouvelles colonnes de données
-        self.Donnees.insertColumn(self.col)
-        self.Donnees.insertColumn(self.col + 1)
-        # Définition des entêtes de colonnes
-        self.colonne_Labels.append('Temps (s)')
-        self.colonne_Labels.append('Tension (V)')
-        self.Donnees.setHorizontalHeaderLabels(self.colonne_Labels)
-        
-        # boucle d'incrémentation des couleurs des courbes
-        if self.color < len(self.tab_couleur)-1:
-            self.color += 1
-        else :
-            self.color = 0
-        # Démarrage du timer d'acquisition
-        self.timerMesure.start(self.spinBox.value())
-        if(self.checkBoxSimu.isChecked()):
-            self.Data.appendHtml('Start Simulation at {} ms\n'.format(
-                self.spinBox.value()))
-        else:
-            self.Data.appendHtml('Start Measuring at {} ms\n'.format(
-                self.spinBox.value()))
+        self.btnOnoff.clicked.connect(lambda: self.Mclose()) 
+        if self.btnCommencer.text() != "Pause":
+            if self.btnCommencer.text() == "Commencer l'enregistrement":
+                self.btnCommencer.setText('Pause')
+                self.btnCommencer.clicked.connect(self.TimerStop)
+                self.btnReini.setEnabled(True)
+                self.btnEnregistrer.setEnabled(True)
+                self.btnReiniGra.setEnabled(True)
+                        # Réinitialistaion des listes de données
+                self.resdonnees() 
+                self.col += 3
+                self.row = 0        
+                #Création de nouvelles colonnes de données
+                self.Donnees.insertColumn(self.col)
+                self.Donnees.insertColumn(self.col + 1)
+                self.Donnees.insertColumn(self.col + 2)
+                # Définition des entêtes de colonnes
+                self.colonne_Labels.append('Temps (s)')
+                self.colonne_Labels.append('Tension (V)')
+                self.colonne_Labels.append('Courant (A)')
+                self.Donnees.setHorizontalHeaderLabels(self.colonne_Labels)     
+                # boucle d'incrémentation des couleurs des courbes
+                if self.color < len(self.tab_couleur)-1:
+                    self.color += 1
+                else :
+                    self.color = 0 
+            # Démarrage du timer d'acquisition
+            self.timerMesure.start(self.spinBox.value())
+            if(self.checkBoxSimu.isChecked()):
+                self.Data.appendHtml('Start Simulation at {} ms\n'.format(
+                    self.spinBox.value()))
+            else:
+                self.Data.appendHtml('Start Measuring at {} ms\n'.format(
+                    self.spinBox.value()))
+            
     
-    
+        elif self.btnCommencer.text() == "Pause":
+            self.btnCommencer.setText('Continuer')
+            
+   
                 
     def read_Data_Mesure(self):
         # Génération de l'axe X 
@@ -494,16 +454,20 @@ class Window(QMainWindow, Ui_MainWindow):
         # Si on est en mode simu, on ajoute des points aléatoires
         if(self.checkBoxSimu.isChecked()):
             self.Tension.append(random.uniform(0, 2) + 19)
+        
+        # Si on est en mode simu, on ajoute des points aléatoires
+        if(self.checkBoxSimu.isChecked()):
+            self.Current.append(random.uniform(0, 2) + 4)
+            
             # Sinon on récupère les valeurs de l'alimentation
-            
+            ##
     #A modifier pour la liaison avec l'alimentation de laboratoire
-            
+            #U=R*I
             # else:
             #     try:
             #         signalCTN = self.signal_A0.read()
             #         Rref = 1000                          
             #         R = Rref * signalCTN / (1 - signalCTN) #
-            #         R0 = 950 # paramètre étalonnage - Résistance à T0 25°C soit 298 K
             #         T0 = 298 # 28°C
             #         beta = 4070   # gap de la thermistance
             #         T = 1 / (log(R/R0) / beta + 1/T0) - 273 # Loi d'étalonnage de la thermistance
@@ -514,26 +478,30 @@ class Window(QMainWindow, Ui_MainWindow):
         
         
             # Affichage de la courbe
-            self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[self.color]))
-            #self.TabTension.show()
+            self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
+            self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
+            self.TabTension.show()
             row = self.Donnees.rowCount()
-            # print(self.row, row)
+            print(self.Tension, self.Temps, self.Current)
             if self.row >= row:
                 self.Donnees.insertRow(row)
             self.Donnees.setItem(self.row,self.col,
                                   QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
             self.Donnees.setItem(self.row,self.col+1,
                                   QTableWidgetItem("{:.2f}".format(self.Tension[-1])))
+            self.Donnees.setItem(self.row,self.col+2,
+                                  QTableWidgetItem("{:.2f}".format(self.Current[-1])))
             self.row += 1        
         
     def reiniTab(self):
-        self.Donnees.clear()
+        self.btnCommencer.setText("Commencer l'enregistrement")
+        self.resdonnees()
         while self.Donnees.rowCount() > 0:
             self.Donnees.removeRow(0)
         while self.Donnees.columnCount() > 0:
             self.Donnees.removeColumn(0)
-
-        self.col = -2
+            
+        self.col = -3
         self.row = 0
 #        self.Data.appendHtml('Tableau effacé\n')
         
@@ -560,7 +528,7 @@ class Window(QMainWindow, Ui_MainWindow):
             return
         with open(file_name, "w") as file:
             # zip permet d'extraire 2 valeurs de 2 listes
-            for x, y in zip(self.Temps, self.Tension):
+            for x, y, z in zip(self.Temps, self.Tension, self.Current):
                 file.write("{} {}\n".format(x, y))
         path = pathlib.Path(file_name)
         self.Data.appendHtml(path.name +
@@ -590,6 +558,9 @@ class Window(QMainWindow, Ui_MainWindow):
                     file.write(ligne[:-1] + "\n")
                     ligne = ""
                 QApplication.clipboard().setText(texte)
+
+
+        
     def ChangeMode(self, checkState):
         # Test si la checkbox est cochée
         if (checkState == Qt.Checked):
@@ -597,6 +568,13 @@ class Window(QMainWindow, Ui_MainWindow):
             self.spinBox.setMinimum(10)
         else:
             self.spinBox.setMinimum(500)
+            
+            
+    def close(self):
+        # On stoppe les mesures si l'alimentation a été initialisée
+        if(self.alimRS is not None):
+            self.alimRS.exit()
+        self.close()
 
 
 if __name__ == "__main__":
