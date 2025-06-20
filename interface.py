@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow, QMessageBox, QFileDialog, QTableWidgetItem)
 # Import des bibliotèques QtCore
-from PyQt5.QtCore import QTimer, QFileInfo, Qt, QDateTime
+from PyQt5.QtCore import QTimer, QFileInfo, Qt, QDateTime, QThread
 from PyQt5.QtGui import QIcon
 
 import random
@@ -48,14 +48,12 @@ _CONNECTION_SETTINGS = {
     "stopbits": serial.STOPBITS_ONE,
 }
 
-
 def test_connection(port=PORT):
     """Simple funtion to test connection to the PSU"""
     with serial.Serial(port=port, **_CONNECTION_SETTINGS, timeout=1) as dev:
         dev.flush()
         dev.write("*IDN?".encode())
         print(dev.readline().decode())
-
 
 class PowerSupply:
     """Control for RS PRO 3000/6000 Series programmable power supply"""
@@ -96,8 +94,8 @@ class PowerSupply:
         ret = self.dev.readline().decode("utf-8").strip()
         # Query again if empty string received
         if ret == "":
-            time.sleep(0.2)
-            self.dev.write(command.encode())
+            #time.sleep(0.2)
+            #self.dev.write(command.encode())
             ret = self.dev.readline().decode("utf-8").strip()
         return ret
 
@@ -129,24 +127,6 @@ class PowerSupply:
 
     def get_idn(self):
         return self.query("*IDN?")
-    
-    
-    
-    
-    #   !Attention, IDN est mentionner ici
-    #   Cependant, il est inscrit ION dans la doc manuscrite
-
-
-    # def set_output(self, state):
-    #     """Works only for 6000-series!"""
-    #     if "RS-300" in self.idn:
-    #         raise NotImplementedError(
-    #             "The set_output() function only works with 6000 series"
-    #         )
-    #     self.write(f"OUT{state}")
-    
-    
-    
 
     def get_actual_current(self):
         current = float(self.query("IOUT1?"))
@@ -166,7 +146,6 @@ class PowerSupply:
     def set_voltage(self, voltage):
         self.write(f"VSET1:{voltage}")
         
-        
     def set_lock(self, loconoff):
         if loconoff == 1:
             self.write("LOCK1\n")
@@ -179,9 +158,6 @@ class PowerSupply:
         else:
             self.write("OCP0")
 
-
-            
-    
     # def get_info_output(self):
     #         os = self.query("STATUS?")
     #         if (os=="S"):
@@ -195,12 +171,6 @@ class PowerSupply:
     # def set_activate_output(self, outonoff):
     #     self.write(f"OUT{outonoff}")
         
-    
-        
-    
-
-
-
 
 
 # ^ partie serial 
@@ -211,52 +181,30 @@ class Window(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
-              
         # On associe les cliques sur le bouttons à des fonctions
-        #self.NomBouton.clicked.connect(self.NomFonction)
+        # self.NomBouton.clicked.connect(self.NomFonction)
         self.btnOnoff.clicked.connect(lambda: self.close())
-        #fichier led.h / promotion style sheet
-        self.buttonCV.clicked.connect(self.actionCV)
-        self.buttonCC.clicked.connect(self.actionCC)
+        # fichier led.h / promotion style sheet
         self.buttonLOCK.clicked.connect(self.bloquePanneau)
         self.buttonOCP.clicked.connect(self.actionOCP)
-#        self.indiceOut.clicked.connect(self.desactiveSortie)
-
+        # self.indiceOut.clicked.connect(self.desactiveSortie)
         self.btnCommencer.clicked.connect(self.TimerStartMesure)
-    
-
         self.btnReini.clicked.connect(self.reiniTab)       
         self.btnEnregistrer.clicked.connect(self.enregTab)
         self.btnReiniGra.clicked.connect(self.reiniGraphique)
-        
         self.btnOnoff.clicked.connect(self.onoff)
-
-        
-        
+        # Dial des Voltes       
         self.dialVoltage.valueChanged.connect(self.majDialAlimVo)
         self.dialVoltage.sliderReleased.connect(self.majDialAlimV)
-
-
-        self.dialAmpere.valueChanged.connect(self.majDialA)
-       # self.realVoltage.valueChanged.connect(self.realV)
-
-        
-
-        # self.realVoltage.valueChanged.connect(self.majRealV)        
-        # self.realAmpere.valueChanged.connect(self.majRealA)
-
+        # Dial des amperes
+        self.dialAmpere.valueChanged.connect(self.majDialAlimA)
+        self.dialAmpere.sliderReleased.connect(self.majDialAlimAAff)
         # On créé des Timer pour les tâches qui se répètent toutes les X ms
-        # Il faut démarrer le timer avec un start !
         self.timerMesure = QTimer()
         self.timerMesure.timeout.connect(self.read_Data_Mesure)
-        
-        
-        
         self.checkBoxSimu.stateChanged.connect(self.ChangeMode)
-        #self.spinBox.valueChanged.connect(self.TimerStartMesure)
-        
         self.alimRS = None
-    #tableau graph tension
+        # tableau graph tension
         self.Temps = []
         self.Tension = []
         self.Current=[]
@@ -276,33 +224,16 @@ class Window(QMainWindow, Ui_MainWindow):
         # Titre de l'axe horizontal
         self.TabTension.setLabel('bottom','Temps (s)', color ='black')
         self.TabTension.showGrid(x = True, y = True, alpha = 0.3)        
-
-
-    
-        
-        
-
-#    def initAlimRS(self):
-
-
-
-
+        self.psu = PowerSupply()
+     
+# Action des boutons et voyants
     def actionOCP(self):
         if (self.buttonOCP.isChecked()):
-            with PowerSupply() as psu:
-                psu.set_ocp(1)
+            self.psu.set_ocp(1)
             self.led_ocp.setState(0)
         else:
-            with PowerSupply() as psu:
-                psu.set_ocp(0)
+            self.psu.set_ocp(0)
             self.led_ocp.setState(1)
-       
-        
-    
-        
-        
-
-
 
     def actionCV(self):
         self.led_cv.setState(0)
@@ -312,57 +243,39 @@ class Window(QMainWindow, Ui_MainWindow):
         self.led_cc.setState(0)
         self.led_cv.setState(2)      
         
-    
-            
     def bloquePanneau(self):
         if (self.buttonLOCK.isChecked()):
-            with PowerSupply() as psu:
-                psu.set_lock(1)
+            self.psu.set_lock(1)
             self.led_lock.setState(0)
             self.dialVoltage.setEnabled(False)
             self.dialAmpere.setEnabled(False)
             self.dialVoltage.setNotchesVisible(False)
             self.dialAmpere.setNotchesVisible(False)
         else:
-            with PowerSupply() as psu:
-                psu.set_lock(0)
+            self.psu.set_lock(0)
             self.led_lock.setState(1)
             self.dialVoltage.setEnabled(True)
             self.dialAmpere.setEnabled(True)
             self.dialVoltage.setNotchesVisible(True)
-            self.dialAmpere.setNotchesVisible(True)
-        
-   
-
-        
-        
-
-        
+            self.dialAmpere.setNotchesVisible(True) 
+    
     def majDialAlimV(self):
         value=self.dialVoltage.value()
-        with PowerSupply() as psu:
-            psu.set_voltage(value)  
+        self.psu.set_voltage(value)  
         
     def majDialAlimVo(self, value):
         self.nbVoltage.display(value) 
-         
-         
-         
-         
-         
-    def majDialA(self,event):
-        self.nbAmpere.display(event)          
-            
+              
+    def majDialAlimAAff(self):         
+        event=self.dialAmpere.event()
+        self.psu.set_current(event)  
    
     def majDialAlimA(self, value):
-        with PowerSupply() as psu:
-            psu.set_current(value)
-            
+        self.nbAmpere.display(value)
             
     # def realV(self, value):
-    #     with PowerSupply() as psu:
-    #         self.realVoltage.display(psu.get_actual_voltage())
-            
+    # with PowerSupply() as psu:
+    # self.realVoltage.display(psu.get_actual_voltage())
         
     def onoff(self): # a transformer pour le démarrage de l'appareil
         self.led_pp.setState(4)
@@ -371,7 +284,6 @@ class Window(QMainWindow, Ui_MainWindow):
         # self.buttonCC.setEnabled(False)
         # self.buttonCV.setEnabled(False)
         # self.buttonLOCK.setEnabled(False)
-
 
     # def desactiveSortie(self):
     #     if self.indiceOut.isChecked():
@@ -383,32 +295,23 @@ class Window(QMainWindow, Ui_MainWindow):
     #             psu.set_activate_output("1")
     #             print("sortie",psu.get_info_output())
     
-
-    
-    
-    
-
-        
-    
     def TimerStop(self):
-        #self.spinBox.setValue(1000)
         self.timerMesure.stop()
-
+    
     def resdonnees(self):
         self.Temps, self.Tension, self.Current=[],[],[]
-      #  self.TabTension.plot.cleargraph()
-        
-        
+    
+
     #Tableau de données
     def TimerStartMesure(self):
         self.btnOnoff.clicked.connect(lambda: self.Mclose()) 
         if self.btnCommencer.text() != "Pause":
             if self.btnCommencer.text() == "Commencer l'enregistrement":
                 self.btnCommencer.setText('Pause')
-                self.btnCommencer.clicked.connect(self.TimerStop)
                 self.btnReini.setEnabled(True)
                 self.btnEnregistrer.setEnabled(True)
                 self.btnReiniGra.setEnabled(True)
+
                         # Réinitialistaion des listes de données
                 self.resdonnees() 
                 self.col += 3
@@ -426,22 +329,23 @@ class Window(QMainWindow, Ui_MainWindow):
                 if self.color < len(self.tab_couleur)-1:
                     self.color += 1
                 else :
-                    self.color = 0 
-            # Démarrage du timer d'acquisition
-            self.timerMesure.start(self.spinBox.value())
-            if(self.checkBoxSimu.isChecked()):
-                self.Data.appendHtml('Start Simulation at {} ms\n'.format(
-                    self.spinBox.value()))
-            else:
-                self.Data.appendHtml('Start Measuring at {} ms\n'.format(
-                    self.spinBox.value()))
+                    self.color = 0
+                    # Démarrage du timer d'acquisition
+                self.timerMesure.start(self.spinBox.value())
+                if(self.checkBoxSimu.isChecked()):
+                    self.spinBox.value()
+                else:
+                    self.spinBox.value()                      
+                
+            elif self.btnCommencer.text() == "Continuer":
+                self.btnCommencer.setText('Pause')
+                self.timerMesure.start(self.spinBox.value())
             
-    
         elif self.btnCommencer.text() == "Pause":
+            self.TimerStop()
             self.btnCommencer.setText('Continuer')
             
-   
-                
+            
     def read_Data_Mesure(self):
         # Génération de l'axe X 
         if len(self.Temps) > 0 and self.row > 0:
@@ -458,31 +362,17 @@ class Window(QMainWindow, Ui_MainWindow):
         # Si on est en mode simu, on ajoute des points aléatoires
         if(self.checkBoxSimu.isChecked()):
             self.Current.append(random.uniform(0, 2) + 4)
-            
-            # Sinon on récupère les valeurs de l'alimentation
-            ##
-    #A modifier pour la liaison avec l'alimentation de laboratoire
-            #U=R*I
-            # else:
-            #     try:
-            #         signalCTN = self.signal_A0.read()
-            #         Rref = 1000                          
-            #         R = Rref * signalCTN / (1 - signalCTN) #
-            #         T0 = 298 # 28°C
-            #         beta = 4070   # gap de la thermistance
-            #         T = 1 / (log(R/R0) / beta + 1/T0) - 273 # Loi d'étalonnage de la thermistance
-            #         self.Temperature.append(T)
-            #     except Exception:
-            #         self.Data.appendHtml(
-            #             "<b style='color:red'>Erreur de mesure</b>")
         
+        else:                           #fait lagger le code probleme d'indexage de liste
+            self.Tension.append(self.psu.get_actual_voltage())
+            #self.Current.append(self.psu.get_actual_current())
+            self.Current.append(0)
         
             # Affichage de la courbe
             self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
             self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
             self.TabTension.show()
             row = self.Donnees.rowCount()
-            print(self.Tension, self.Temps, self.Current)
             if self.row >= row:
                 self.Donnees.insertRow(row)
             self.Donnees.setItem(self.row,self.col,
@@ -499,19 +389,16 @@ class Window(QMainWindow, Ui_MainWindow):
         while self.Donnees.rowCount() > 0:
             self.Donnees.removeRow(0)
         while self.Donnees.columnCount() > 0:
-            self.Donnees.removeColumn(0)
-            
+            self.Donnees.removeColumn(0)            
         self.col = -3
         self.row = 0
-#        self.Data.appendHtml('Tableau effacé\n')
+        self.btnReini.setEnabled(False)
+        self.btnEnregistrer.setEnabled(False)
         
     def reiniGraphique(self):
-        self.TabTension.clear()
-
-
-        
-        
-        
+        self.TabTension=[]
+        self.btnReiniGra.setEnabled(False)
+ 
     def enregTab(self):
         """
         Pour choisir un dossier d'enregistrement
@@ -522,10 +409,10 @@ class Window(QMainWindow, Ui_MainWindow):
         file_name, Type = QFileDialog.getSaveFileName(
             self, 'Save data', file_name,
             'Text file (*.txt);;CSV file (*.csv);;All files()')
-        if(file_name == ""):
-            self.Data.appendHtml(
-                "<b style='color:red'>Enregistrement annulé</b>")
-            return
+        # if(file_name == ""):             je n'utilise pas de tableau de retour 
+        #     self.Data.appendHtml(
+        #         "<b style='color:red'>Enregistrement annulé</b>")
+        #     return            
         with open(file_name, "w") as file:
             # zip permet d'extraire 2 valeurs de 2 listes
             for x, y, z in zip(self.Temps, self.Tension, self.Current):
@@ -575,7 +462,6 @@ class Window(QMainWindow, Ui_MainWindow):
         if(self.alimRS is not None):
             self.alimRS.exit()
         self.close()
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

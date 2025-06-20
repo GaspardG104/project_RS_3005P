@@ -93,9 +93,9 @@
    <widget class="PlotWidget" name="TabTension" native="true">
     <property name="geometry">
      <rect>
-      <x>570</x>
+      <x>500</x>
       <y>130</y>
-      <width>487</width>
+      <width>561</width>
       <height>231</height>
      </rect>
     </property>
@@ -146,6 +146,15 @@
        <property name="singleStep">
         <number>1</number>
        </property>
+       <property name="value">
+        <number>2</number>
+       </property>
+       <property name="invertedAppearance">
+        <bool>false</bool>
+       </property>
+       <property name="invertedControls">
+        <bool>false</bool>
+       </property>
        <property name="wrapping">
         <bool>false</bool>
        </property>
@@ -170,6 +179,12 @@
        </property>
        <property name="sliderPosition">
         <number>0</number>
+       </property>
+       <property name="invertedAppearance">
+        <bool>false</bool>
+       </property>
+       <property name="invertedControls">
+        <bool>false</bool>
        </property>
        <property name="wrapping">
         <bool>false</bool>
@@ -352,7 +367,7 @@
    <widget class="QPushButton" name="btnCommencer">
     <property name="geometry">
      <rect>
-      <x>600</x>
+      <x>500</x>
       <y>370</y>
       <width>161</width>
       <height>91</height>
@@ -374,14 +389,14 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>780</x>
+      <x>810</x>
       <y>370</y>
-      <width>121</width>
+      <width>131</width>
       <height>91</height>
      </rect>
     </property>
     <property name="text">
-     <string>Reinistialiser</string>
+     <string>Reinistialiser Donnees</string>
     </property>
    </widget>
    <widget class="QPushButton" name="btnEnregistrer">
@@ -390,7 +405,7 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>920</x>
+      <x>950</x>
       <y>370</y>
       <width>111</width>
       <height>91</height>
@@ -398,130 +413,6 @@
     </property>
     <property name="text">
      <string>Enregistrer</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_2">
-    <property name="geometry">
-     <rect>
-      <x>600</x>
-      <y>700</y>
-      <width>240</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-      <horstretch>0</horstretch>
-      <verstretch>0</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="minimumSize">
-     <size>
-      <width>240</width>
-      <height>20</height>
-     </size>
-    </property>
-    <property name="maximumSize">
-     <size>
-      <width>200</width>
-      <height>20</height>
-     </size>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>12</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Voltage</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_3">
-    <property name="geometry">
-     <rect>
-      <x>600</x>
-      <y>790</y>
-      <width>240</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-      <horstretch>0</horstretch>
-      <verstretch>0</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="minimumSize">
-     <size>
-      <width>240</width>
-      <height>20</height>
-     </size>
-    </property>
-    <property name="maximumSize">
-     <size>
-      <width>200</width>
-      <height>20</height>
-     </size>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>12</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Ampere</string>
-    </property>
-   </widget>
-   <widget class="QLCDNumber" name="realAmpere">
-    <property name="geometry">
-     <rect>
-      <x>600</x>
-      <y>820</y>
-      <width>221</width>
-      <height>41</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_4">
-    <property name="geometry">
-     <rect>
-      <x>600</x>
-      <y>660</y>
-      <width>240</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-      <horstretch>0</horstretch>
-      <verstretch>0</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="minimumSize">
-     <size>
-      <width>240</width>
-      <height>20</height>
-     </size>
-    </property>
-    <property name="maximumSize">
-     <size>
-      <width>200</width>
-      <height>20</height>
-     </size>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>12</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Valeurs reels :</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_5">
@@ -729,7 +620,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>720</y>
+      <y>710</y>
       <width>41</width>
       <height>41</height>
      </rect>
@@ -742,7 +633,7 @@
     <property name="geometry">
      <rect>
       <x>280</x>
-      <y>720</y>
+      <y>710</y>
       <width>41</width>
       <height>41</height>
      </rect>
@@ -755,7 +646,7 @@
     <property name="geometry">
      <rect>
       <x>350</x>
-      <y>720</y>
+      <y>710</y>
       <width>41</width>
       <height>41</height>
      </rect>
@@ -879,7 +770,7 @@
      <string>Simulation</string>
     </property>
     <property name="checked">
-     <bool>true</bool>
+     <bool>false</bool>
     </property>
    </widget>
    <widget class="QLabel" name="temps_ms">
@@ -901,37 +792,14 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>500</x>
-      <y>70</y>
-      <width>81</width>
-      <height>51</height>
+      <x>670</x>
+      <y>370</y>
+      <width>131</width>
+      <height>91</height>
      </rect>
     </property>
     <property name="text">
-     <string>Reinistialiser</string>
-    </property>
-   </widget>
-   <widget class="QSpinBox" name="realVoltage">
-    <property name="geometry">
-     <rect>
-      <x>610</x>
-      <y>730</y>
-      <width>101</width>
-      <height>31</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLabel" name="status">
-    <property name="geometry">
-     <rect>
-      <x>1070</x>
-      <y>640</y>
-      <width>401</width>
-      <height>171</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string/>
+     <string>Reinistialiser Graphique</string>
     </property>
    </widget>
    <widget class="QPushButton" name="indiceOut">
@@ -941,7 +809,7 @@
     <property name="geometry">
      <rect>
       <x>270</x>
-      <y>750</y>
+      <y>740</y>
       <width>41</width>
       <height>41</height>
      </rect>

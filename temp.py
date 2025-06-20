@@ -158,15 +158,6 @@ class PowerSupply:
     
         
             
-    
-    # def get_info_output(self):
-    #         os = str(self.query("STATUS?"))
-    #         s = os.readline().decode().strip()
-    #         return s
-    
-    # def set_activate_output(self, outonoff):
-    #     self.write(f"OUT{outonoff}")
-        
           
     def get_info_output(self):
             os = self.query("STATUS?")
@@ -187,16 +178,13 @@ class PowerSupply:
 with PowerSupply() as psu:
     # print("Actual voltage", psu.get_actual_voltage())
     # print("Set voltage to 1V")
-    psu.set_voltage(1)
-    time.sleep(0.001)
-    psu.set_ocp(0)
-    time.sleep(0.001)
+    print("Actual voltage", psu.get_actual_voltage())
     psu.set_activate_output(1)
     
     print("sortie",psu.get_info_output())
     time.sleep(3)
     
-    print("Actual voltage", psu.get_actual_voltage())
+    
     
     psu.close()
     
