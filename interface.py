@@ -171,6 +171,12 @@ class PowerSupply:
     # def set_activate_output(self, outonoff):
     #     self.write(f"OUT{outonoff}")
         
+    
+    
+    
+    
+    
+    
 
 
 # ^ partie serial 

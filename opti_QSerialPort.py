@@ -32,19 +32,29 @@ import time
 import serial
 import numpy as np
 
+PORT = "COM3"
+_CONNECTION_SETTINGS = {
+    "baudrate": 9600,
+    "parity": serial.PARITY_NONE,
+    "bytesize": serial.EIGHTBITS,
+    "stopbits": serial.STOPBITS_ONE,
+}
+
+
+        
 class SerialWorker(QObject):
     data_received = pyqtSignal(bytes)
     port_opened = pyqtSignal(bool, str) # bool success, str message
     port_closed = pyqtSignal()
     error_occurred = pyqtSignal(str)
 
- 
+
     def __init__(self):
         super().__init__()
         self._serial_port = QSerialPort()
         self._serial_port.readyRead.connect(self._read_data)
         self._is_open = False
- 
+        
     def open_port(self, port_name, baud_rate):
         if self._serial_port.isOpen():
             self._serial_port.close() # Ferme si déjà ouvert
@@ -59,14 +69,14 @@ class SerialWorker(QObject):
             self.port_opened.emit(False, f"Erreur d'ouverture du port {port_name}: {self._serial_port.errorString()}")
             self.error_occurred.emit(self._serial_port.errorString())
  
-    def close_port(self):
+    def _close_port(self):
         if self._serial_port.isOpen():
             self._serial_port.close()
             self._is_open = False
             self.port_closed.emit()
             print("Port fermé dans le worker.")
  
-    def write_data(self, data):
+    def _write_data(self, data):
         if self._is_open:
             self._serial_port.write(data)
         else:
@@ -76,24 +86,21 @@ class SerialWorker(QObject):
         while self._serial_port.bytesAvailable():
             data = self._serial_port.readAll().data()
             self.data_received.emit(data)
-
             
-    def query(self, command):
-        if self._is_open:
-            self._serial_port.ReadWrite(command)
+            
+    def _query(self, command):
+        if self._serial_port.isOpen():
+            self._write_data(command.encode())
+            ret = self.dev.readline().decode("utf-8").strip()
+            # Query again if empty string received
+            if ret == "":
+                #time.sleep(0.2)
+                self._write_data(command.encode())
+                ret = self.dev.readline().decode("utf-8").strip()
+            return ret
         else:
             self.error_occurred.emit("Impossible d'écrire: le port n'est pas ouvert.")
-            
-    # def query(self, command):
-    #     self.dev.write(command.encode())
-    #     ret = self.dev.readline().decode("utf-8").strip()
-    #     # Query again if empty string received
-    #     if ret == "":
-    #         #time.sleep(0.2)
-    #         self.dev.write(command.encode())
-    #         ret = self.dev.readline().decode("utf-8").strip()
-    #     return ret
-            
+                
 #Partie des commandes de l'alimentation:
     
     #Demande l'identification RS-3005P du matériel
@@ -148,43 +155,113 @@ class SerialWorker(QObject):
             return os
         
     #Active/Désactive le port de sortie électronique
-    def set_activate_output(self, outonoff):
+    def _set_activate_output(self, outonoff):
         self.write_data(f"OUT{outonoff}")
         
+        
+        
+        
+    def _start_mesure(self):
+                # Réinitialistaion des listes de données
+        self.resdonnees() 
+        self.col += 3
+        self.row = 0        
+        #Création de nouvelles colonnes de données
+        self.Donnees.insertColumn(self.col)
+        self.Donnees.insertColumn(self.col + 1)
+        self.Donnees.insertColumn(self.col + 2)
+        # Définition des entêtes de colonnes
+        self.colonne_Labels.append('Temps (s)')
+        self.colonne_Labels.append('Tension (V)')
+        self.colonne_Labels.append('Courant (A)')
+        self.Donnees.setHorizontalHeaderLabels(self.colonne_Labels)     
+        # boucle d'incrémentation des couleurs des courbes
+        if self.color < len(self.tab_couleur)-1:
+            self.color += 1
+        else :
+            self.color = 0
+            # Démarrage du timer d'acquisition
+        self.timerMesure.start(self.spinBox.value())
+        if(self.checkBoxSimu.isChecked()):
+            self.spinBox.value()
+        else:
+            self.spinBox.value()                      
+
+
+    def read_mesure(self):
+        # Génération de l'axe X 
+        if len(self.Temps) > 0 and self.row > 0:
+            # Si le point 0 existe, on créé le nouveau point en ajoutant le
+            # point précédent à la valeur de la vitesse d'acquisition
+            self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
+        else:
+            self.Temps.append(0)
+        
+        # Si on est en mode simu, on ajoute des points aléatoires
+        if(self.checkBoxSimu.isChecked()):
+            self.Tension.append(random.uniform(0, 2) + 19)
+        
+        # Si on est en mode simu, on ajoute des points aléatoires
+        if(self.checkBoxSimu.isChecked()):
+            self.Current.append(random.uniform(0, 2) + 4)
+        
+        else:                           #fait lagger le code probleme d'indexage de liste
+            self.Tension.append(self.psu.get_actual_voltage())
+            self.Current.append(self.psu.get_actual_current())
+            self.Current.append(0)
+        #timer  tension emit lier au display
+            # Affichage de la courbe
+            self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
+            self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
+            self.TabTension.show()
+            row = self.Donnees.rowCount()
+            if self.row >= row:
+                self.Donnees.insertRow(row)
+            self.Donnees.setItem(self.row,self.col,
+                                  QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
+            self.Donnees.setItem(self.row,self.col+1,
+                                  QTableWidgetItem("{:.2f}".format(self.Tension[-1])))
+            self.Donnees.setItem(self.row,self.col+2,
+                                  QTableWidgetItem("{:.2f}".format(self.Current[-1])))
+            self.row += 1        
+
+
 
 
 
 class Window(QMainWindow, Ui_MainWindow):
     open_port_request = pyqtSignal(str, int)
-    close_port_request = pyqtSignal()
+    _close_port_request = pyqtSignal()
     write_data_request = pyqtSignal(bytes)
     
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    
+    
+    
+    
+    def __init__(self):
+        super().__init__()
         self.setupUi(self)
-        
+ 
         self.serial_thread = QThread()
         self.serial_worker = SerialWorker()
         self.serial_worker.moveToThread(self.serial_thread)
  
         # Connexions des signaux de la GUI aux slots du worker
         self.open_port_request.connect(self.serial_worker.open_port)
-        self.close_port_request.connect(self.serial_worker.close_port)
-        self.write_data_request.connect(self.serial_worker.write_data)
+        self._close_port_request.connect(self.serial_worker.__close_port)
+        self.write_data_request.connect(self.serial_worker._write_data)
+        self.btnCommencer.clicked.connect(self.serial_worker._start_mesure)
  
         # Connexions des signaux du worker aux slots de la GUI
-        self.serial_worker.data_received.connect(self.display_data)
-        self.serial_worker.port_opened.connect(self.handle_port_opened)
-        self.serial_worker.port_closed.connect(self.handle_port_closed)
-        self.serial_worker.error_occurred.connect(self.display_error)
-        
-        self.serial_worker..connect(self.)
+        self.serial_worker.data_received.connect(self.majDialAlimV)
+        self.serial_worker.port_opened.connect(self.majDialAlimV)
+        self.serial_worker.port_closed.connect(self.majDialAlimV)
+        self.serial_worker.error_occurred.connect(self.majDialAlimV)
  
         # Démarrer le thread lorsque l'application est prête
         self.serial_thread.start()
-    
-    
-    def init_ui(self):     
+        
+        
         # On associe les cliques sur le bouttons à des fonctions
         # self.NomBouton.clicked.connect(self.NomFonction)
         self.btnOnoff.clicked.connect(lambda: self.close())
@@ -209,13 +286,10 @@ class Window(QMainWindow, Ui_MainWindow):
         self.dialAmpere.sliderReleased.connect(self.majDialAlimAAff)
         
         # On créé des Timer pour les tâches qui se répètent toutes les X ms
-        self.timerMesure = QTimer()
-        self.timerMesure.timeout.connect(self.read_Data_Mesure)
         self.checkBoxSimu.stateChanged.connect(self.ChangeMode)
         self.alimRS = None
         
-    # Tableau graphique
-        # Création des tableaux de données
+        # tableau graph tension
         self.Temps = []
         self.Tension = []
         self.Current=[]
@@ -242,9 +316,15 @@ class Window(QMainWindow, Ui_MainWindow):
         self.TabTension.setLabel('bottom','Temps (s)', color ='black')
         self.TabTension.showGrid(x = True, y = True, alpha = 0.3)        
 
-     
+        
+        
+        
+        # Connecter le signal finished du thread à la suppression du worker
+        self.serial_thread.finished.connect(self.serial_worker.deleteLater)
+        self.serial_thread.finished.connect(self.serial_thread.deleteLater)      
+      
+        
 # Action des boutons et voyants
-    #Active l'OCP ou le désactive avec le bouton OCP
     def actionOCP(self):
         if (self.buttonOCP.isChecked()):
             self.psu.set_ocp(1)
@@ -306,11 +386,11 @@ class Window(QMainWindow, Ui_MainWindow):
     # def desactiveSortie(self):
     #     if self.indiceOut.isChecked():
     #         with PowerSupply() as psu:
-    #             psu.set_activate_output("0")
+    #             psu.__set_activate_output("0")
     #             print("sortie",psu.get_info_output())
     #     else:
     #         with PowerSupply() as psu:
-    #             psu.set_activate_output("1")
+    #             psu.__set_activate_output("1")
     #             print("sortie",psu.get_info_output())
     
     def TimerStop(self):
@@ -320,8 +400,11 @@ class Window(QMainWindow, Ui_MainWindow):
         self.Temps, self.Tension, self.Current=[],[],[]
     
 
-    #Tableau de données
-    def TimerStartMesure(self):
+            
+            
+        
+        
+    def Mesure(self):
         self.btnOnoff.clicked.connect(lambda: self.Mclose()) 
         if self.btnCommencer.text() != "Pause":
             if self.btnCommencer.text() == "Commencer l'enregistrement":
@@ -330,30 +413,7 @@ class Window(QMainWindow, Ui_MainWindow):
                 self.btnEnregistrer.setEnabled(True)
                 self.btnReiniGra.setEnabled(True)
 
-                        # Réinitialistaion des listes de données
-                self.resdonnees() 
-                self.col += 3
-                self.row = 0        
-                #Création de nouvelles colonnes de données
-                self.Donnees.insertColumn(self.col)
-                self.Donnees.insertColumn(self.col + 1)
-                self.Donnees.insertColumn(self.col + 2)
-                # Définition des entêtes de colonnes
-                self.colonne_Labels.append('Temps (s)')
-                self.colonne_Labels.append('Tension (V)')
-                self.colonne_Labels.append('Courant (A)')
-                self.Donnees.setHorizontalHeaderLabels(self.colonne_Labels)     
-                # boucle d'incrémentation des couleurs des courbes
-                if self.color < len(self.tab_couleur)-1:
-                    self.color += 1
-                else :
-                    self.color = 0
-                    # Démarrage du timer d'acquisition
-                self.timerMesure.start(self.spinBox.value())
-                if(self.checkBoxSimu.isChecked()):
-                    self.spinBox.value()
-                else:
-                    self.spinBox.value()                      
+#appeler la fonction qui est dans serial worker                   
                 
             elif self.btnCommencer.text() == "Continuer":
                 self.btnCommencer.setText('Pause')
@@ -362,45 +422,7 @@ class Window(QMainWindow, Ui_MainWindow):
         elif self.btnCommencer.text() == "Pause":
             self.TimerStop()
             self.btnCommencer.setText('Continuer')
-            
-            
-    def read_Data_Mesure(self):
-        # Génération de l'axe X 
-        if len(self.Temps) > 0 and self.row > 0:
-            # Si le point 0 existe, on créé le nouveau point en ajoutant le
-            # point précédent à la valeur de la vitesse d'acquisition
-            self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
-        else:
-            self.Temps.append(0)
-        
-        # Si on est en mode simu, on ajoute des points aléatoires
-        if(self.checkBoxSimu.isChecked()):
-            self.Tension.append(random.uniform(0, 2) + 19)
-        
-        # Si on est en mode simu, on ajoute des points aléatoires
-        if(self.checkBoxSimu.isChecked()):
-            self.Current.append(random.uniform(0, 2) + 4)
-        
-        else:                           #fait lagger le code probleme d'indexage de liste
-            self.Tension.append(self.psu.get_actual_voltage())
-            #self.Current.append(self.psu.get_actual_current())
-            self.Current.append(0)
-        
-            # Affichage de la courbe
-            self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
-            self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
-            self.TabTension.show()
-            row = self.Donnees.rowCount()
-            if self.row >= row:
-                self.Donnees.insertRow(row)
-            self.Donnees.setItem(self.row,self.col,
-                                  QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
-            self.Donnees.setItem(self.row,self.col+1,
-                                  QTableWidgetItem("{:.2f}".format(self.Tension[-1])))
-            self.Donnees.setItem(self.row,self.col+2,
-                                  QTableWidgetItem("{:.2f}".format(self.Current[-1])))
-            self.row += 1        
-        
+     
     def reiniTab(self):
         self.btnCommencer.setText("Commencer l'enregistrement")
         self.resdonnees()
@@ -475,16 +497,18 @@ class Window(QMainWindow, Ui_MainWindow):
             self.spinBox.setMinimum(500)
             
             
+    def close(self):
+        # On stoppe les mesures si l'alimentation a été initialisée
+        if(self.alimRS is not None):
+            self.alimRS.exit()
+        self.close()            
+        
     def closeEvent(self, event):
         # S'assurer que le thread se termine proprement à la fermeture de l'application
-        self.close_port_request.emit()
+        self._close_port_request.emit()
         self.serial_thread.quit()
         self.serial_thread.wait() # Attendre que le thread se termine
         super().closeEvent(event)
-
-
-
-
 
 
 if __name__ == "__main__":
