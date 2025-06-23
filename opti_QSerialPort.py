@@ -22,7 +22,7 @@ from PyQt5.QtGui import QIcon
 
 #ajout pour l'optimisation QSerialPort 
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
-from PyQt5.QtCore import QIODevice, pyqtSignal, QObject
+from PyQt5.QtCore import QIODevice, pyqtSignal, QObject, QThread
 
 import random
 import pathlib
@@ -32,4 +32,465 @@ import time
 import serial
 import numpy as np
 
+class SerialWorker(QObject):
+    data_received = pyqtSignal(bytes)
+    port_opened = pyqtSignal(bool, str) # bool success, str message
+    port_closed = pyqtSignal()
+    error_occurred = pyqtSignal(str)
 
+ 
+    def __init__(self):
+        super().__init__()
+        self._serial_port = QSerialPort()
+        self._serial_port.readyRead.connect(self._read_data)
+        self._is_open = False
+ 
+    def open_port(self, port_name, baud_rate):
+        if self._serial_port.isOpen():
+            self._serial_port.close() # Ferme si déjà ouvert
+ 
+        self._serial_port.setPortName(port_name)
+        self._serial_port.setBaudRate(baud_rate)
+        if self._serial_port.open(QIODevice.ReadWrite):
+            self._is_open = True
+            self.port_opened.emit(True, f"Port {port_name} ouvert à {baud_rate} bauds.")
+        else:
+            self._is_open = False
+            self.port_opened.emit(False, f"Erreur d'ouverture du port {port_name}: {self._serial_port.errorString()}")
+            self.error_occurred.emit(self._serial_port.errorString())
+ 
+    def close_port(self):
+        if self._serial_port.isOpen():
+            self._serial_port.close()
+            self._is_open = False
+            self.port_closed.emit()
+            print("Port fermé dans le worker.")
+ 
+    def write_data(self, data):
+        if self._is_open:
+            self._serial_port.write(data)
+        else:
+            self.error_occurred.emit("Impossible d'écrire: le port n'est pas ouvert.")
+ 
+    def _read_data(self):
+        while self._serial_port.bytesAvailable():
+            data = self._serial_port.readAll().data()
+            self.data_received.emit(data)
+
+            
+    def query(self, command):
+        if self._is_open:
+            self._serial_port.ReadWrite(command)
+        else:
+            self.error_occurred.emit("Impossible d'écrire: le port n'est pas ouvert.")
+            
+    # def query(self, command):
+    #     self.dev.write(command.encode())
+    #     ret = self.dev.readline().decode("utf-8").strip()
+    #     # Query again if empty string received
+    #     if ret == "":
+    #         #time.sleep(0.2)
+    #         self.dev.write(command.encode())
+    #         ret = self.dev.readline().decode("utf-8").strip()
+    #     return ret
+            
+#Partie des commandes de l'alimentation:
+    
+    #Demande l'identification RS-3005P du matériel
+    def get_idn(self):
+        return self.query("*IDN?")
+    
+    #Récupère le courrent actuel (réel et non celui afficher sur le panneau numérique)
+    def get_actual_current(self):
+        current = float(self.query("IOUT1?"))
+        # Check if within limits of possible values
+        current = current if 0 <= current <= 5 else np.nan
+        return current
+    
+    #Modifie le courrent (Ampere)
+    def set_current(self, current):
+        self.write_data(f"ISET1:{current}")
+        
+    #Récupère le voltage actuel (réel et non celui afficher sur le panneau numérique)
+    def get_actual_voltage(self):
+        voltage = float(self.query("VOUT1?"))
+        # Check if within limits of possible values
+        voltage = voltage if 0 <= voltage <= 30 else np.nan
+        return voltage
+    
+    #Modifie le voltage (Volte)
+    def set_voltage(self, voltage):
+        self.write_data(f"VSET1:{voltage}")
+    
+    #Active/désactive le mode LOCK qui vérouille le panneau de controle
+    def set_lock(self, loconoff):
+        if loconoff == 1:
+            self.write_data("LOCK1\n")
+        else:
+            self.write_data("LOCK0\n")
+            
+    #Active/désactive le mode OCP (Over Current Protection)    
+    def set_ocp(self, onoff):
+        if onoff == 1:
+            self.write_data("OCP1")
+        else:
+            self.write_data("OCP0")
+            
+    #Demande si le port de sortie électronique est activer ou désactiver           
+    def get_info_output(self):
+            os = self.query("STATUS?")
+            if (os=="S"):
+                os = "connected"
+            elif (os==" "):
+                os= "disconnected"
+            else:
+                os= " error"
+            return os
+        
+    #Active/Désactive le port de sortie électronique
+    def set_activate_output(self, outonoff):
+        self.write_data(f"OUT{outonoff}")
+        
+
+
+
+class Window(QMainWindow, Ui_MainWindow):
+    open_port_request = pyqtSignal(str, int)
+    close_port_request = pyqtSignal()
+    write_data_request = pyqtSignal(bytes)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setupUi(self)
+        
+        self.serial_thread = QThread()
+        self.serial_worker = SerialWorker()
+        self.serial_worker.moveToThread(self.serial_thread)
+ 
+        # Connexions des signaux de la GUI aux slots du worker
+        self.open_port_request.connect(self.serial_worker.open_port)
+        self.close_port_request.connect(self.serial_worker.close_port)
+        self.write_data_request.connect(self.serial_worker.write_data)
+ 
+        # Connexions des signaux du worker aux slots de la GUI
+        self.serial_worker.data_received.connect(self.display_data)
+        self.serial_worker.port_opened.connect(self.handle_port_opened)
+        self.serial_worker.port_closed.connect(self.handle_port_closed)
+        self.serial_worker.error_occurred.connect(self.display_error)
+        
+        self.serial_worker..connect(self.)
+ 
+        # Démarrer le thread lorsque l'application est prête
+        self.serial_thread.start()
+    
+    
+    def init_ui(self):     
+        # On associe les cliques sur le bouttons à des fonctions
+        # self.NomBouton.clicked.connect(self.NomFonction)
+        self.btnOnoff.clicked.connect(lambda: self.close())
+        
+        # fichier led.h / promotion style sheet
+        self.buttonLOCK.clicked.connect(self.bloquePanneau)
+        self.buttonOCP.clicked.connect(self.actionOCP)
+        
+        # self.indiceOut.clicked.connect(self.desactiveSortie)
+        self.btnCommencer.clicked.connect(self.TimerStartMesure)
+        self.btnReini.clicked.connect(self.reiniTab)       
+        self.btnEnregistrer.clicked.connect(self.enregTab)
+        self.btnReiniGra.clicked.connect(self.reiniGraphique)
+        self.btnOnoff.clicked.connect(self.onoff)
+        
+        # Dial des Voltes       
+        self.dialVoltage.valueChanged.connect(self.majDialAlimVo)
+        self.dialVoltage.sliderReleased.connect(self.majDialAlimV)
+        
+        # Dial des amperes
+        self.dialAmpere.valueChanged.connect(self.majDialAlimA)
+        self.dialAmpere.sliderReleased.connect(self.majDialAlimAAff)
+        
+        # On créé des Timer pour les tâches qui se répètent toutes les X ms
+        self.timerMesure = QTimer()
+        self.timerMesure.timeout.connect(self.read_Data_Mesure)
+        self.checkBoxSimu.stateChanged.connect(self.ChangeMode)
+        self.alimRS = None
+        
+    # Tableau graphique
+        # Création des tableaux de données
+        self.Temps = []
+        self.Tension = []
+        self.Current=[]
+        
+        # Indice de couleur pour les courbes
+        self.color = 0
+        
+        # Liste des couleurs de courbes
+        self.tab_couleur = ['b','g','r','c', 'm','y','black']
+        self.col = -3
+        self.colonne_Labels = ['Temps (s)','Tension (V)','Courant (A)']
+        self.row = 0
+        
+        # Couleur du fond du graphe
+        self.TabTension.setBackground("w")
+        
+        # Entête du graphe 
+        self.TabTension.setTitle('Monitoring de la tension', color ='b')
+        
+        # Titre de l'axe vertical
+        self.TabTension.setLabel('left','Tension (V) et Courant (A)', color ='black')
+        
+        # Titre de l'axe horizontal
+        self.TabTension.setLabel('bottom','Temps (s)', color ='black')
+        self.TabTension.showGrid(x = True, y = True, alpha = 0.3)        
+
+     
+# Action des boutons et voyants
+    #Active l'OCP ou le désactive avec le bouton OCP
+    def actionOCP(self):
+        if (self.buttonOCP.isChecked()):
+            self.psu.set_ocp(1)
+            self.led_ocp.setState(0)
+        else:
+            self.psu.set_ocp(0)
+            self.led_ocp.setState(1)
+
+    def actionCV(self):
+        self.led_cv.setState(0)
+        self.led_cc.setState(2)
+        
+    def actionCC(self):# ne pas oublier que le cv bloque le cc
+        self.led_cc.setState(0)
+        self.led_cv.setState(2)      
+        
+    def bloquePanneau(self):
+        if (self.buttonLOCK.isChecked()):
+            self.psu.set_lock(1)
+            self.led_lock.setState(0)
+            self.dialVoltage.setEnabled(False)
+            self.dialAmpere.setEnabled(False)
+            self.dialVoltage.setNotchesVisible(False)
+            self.dialAmpere.setNotchesVisible(False)
+        else:
+            self.psu.set_lock(0)
+            self.led_lock.setState(1)
+            self.dialVoltage.setEnabled(True)
+            self.dialAmpere.setEnabled(True)
+            self.dialVoltage.setNotchesVisible(True)
+            self.dialAmpere.setNotchesVisible(True) 
+    
+    def majDialAlimV(self):
+        value=self.dialVoltage.value()
+        self.psu.set_voltage(value)  
+        
+    def majDialAlimVo(self, value):
+        self.nbVoltage.display(value) 
+              
+    def majDialAlimAAff(self):         
+        event=self.dialAmpere.event()
+        self.psu.set_current(event)  
+   
+    def majDialAlimA(self, value):
+        self.nbAmpere.display(value)
+            
+    # def realV(self, value):
+    # with PowerSupply() as psu:
+    # self.realVoltage.display(psu.get_actual_voltage())
+        
+    def onoff(self): # a transformer pour le démarrage de l'appareil
+        self.led_pp.setState(4)
+        self.led_pn.setState(5)
+        self.led_pgdn.setState(6)
+        # self.buttonCC.setEnabled(False)
+        # self.buttonCV.setEnabled(False)
+        # self.buttonLOCK.setEnabled(False)
+
+    # def desactiveSortie(self):
+    #     if self.indiceOut.isChecked():
+    #         with PowerSupply() as psu:
+    #             psu.set_activate_output("0")
+    #             print("sortie",psu.get_info_output())
+    #     else:
+    #         with PowerSupply() as psu:
+    #             psu.set_activate_output("1")
+    #             print("sortie",psu.get_info_output())
+    
+    def TimerStop(self):
+        self.timerMesure.stop()
+    
+    def resdonnees(self):
+        self.Temps, self.Tension, self.Current=[],[],[]
+    
+
+    #Tableau de données
+    def TimerStartMesure(self):
+        self.btnOnoff.clicked.connect(lambda: self.Mclose()) 
+        if self.btnCommencer.text() != "Pause":
+            if self.btnCommencer.text() == "Commencer l'enregistrement":
+                self.btnCommencer.setText('Pause')
+                self.btnReini.setEnabled(True)
+                self.btnEnregistrer.setEnabled(True)
+                self.btnReiniGra.setEnabled(True)
+
+                        # Réinitialistaion des listes de données
+                self.resdonnees() 
+                self.col += 3
+                self.row = 0        
+                #Création de nouvelles colonnes de données
+                self.Donnees.insertColumn(self.col)
+                self.Donnees.insertColumn(self.col + 1)
+                self.Donnees.insertColumn(self.col + 2)
+                # Définition des entêtes de colonnes
+                self.colonne_Labels.append('Temps (s)')
+                self.colonne_Labels.append('Tension (V)')
+                self.colonne_Labels.append('Courant (A)')
+                self.Donnees.setHorizontalHeaderLabels(self.colonne_Labels)     
+                # boucle d'incrémentation des couleurs des courbes
+                if self.color < len(self.tab_couleur)-1:
+                    self.color += 1
+                else :
+                    self.color = 0
+                    # Démarrage du timer d'acquisition
+                self.timerMesure.start(self.spinBox.value())
+                if(self.checkBoxSimu.isChecked()):
+                    self.spinBox.value()
+                else:
+                    self.spinBox.value()                      
+                
+            elif self.btnCommencer.text() == "Continuer":
+                self.btnCommencer.setText('Pause')
+                self.timerMesure.start(self.spinBox.value())
+            
+        elif self.btnCommencer.text() == "Pause":
+            self.TimerStop()
+            self.btnCommencer.setText('Continuer')
+            
+            
+    def read_Data_Mesure(self):
+        # Génération de l'axe X 
+        if len(self.Temps) > 0 and self.row > 0:
+            # Si le point 0 existe, on créé le nouveau point en ajoutant le
+            # point précédent à la valeur de la vitesse d'acquisition
+            self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
+        else:
+            self.Temps.append(0)
+        
+        # Si on est en mode simu, on ajoute des points aléatoires
+        if(self.checkBoxSimu.isChecked()):
+            self.Tension.append(random.uniform(0, 2) + 19)
+        
+        # Si on est en mode simu, on ajoute des points aléatoires
+        if(self.checkBoxSimu.isChecked()):
+            self.Current.append(random.uniform(0, 2) + 4)
+        
+        else:                           #fait lagger le code probleme d'indexage de liste
+            self.Tension.append(self.psu.get_actual_voltage())
+            #self.Current.append(self.psu.get_actual_current())
+            self.Current.append(0)
+        
+            # Affichage de la courbe
+            self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
+            self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
+            self.TabTension.show()
+            row = self.Donnees.rowCount()
+            if self.row >= row:
+                self.Donnees.insertRow(row)
+            self.Donnees.setItem(self.row,self.col,
+                                  QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
+            self.Donnees.setItem(self.row,self.col+1,
+                                  QTableWidgetItem("{:.2f}".format(self.Tension[-1])))
+            self.Donnees.setItem(self.row,self.col+2,
+                                  QTableWidgetItem("{:.2f}".format(self.Current[-1])))
+            self.row += 1        
+        
+    def reiniTab(self):
+        self.btnCommencer.setText("Commencer l'enregistrement")
+        self.resdonnees()
+        while self.Donnees.rowCount() > 0:
+            self.Donnees.removeRow(0)
+        while self.Donnees.columnCount() > 0:
+            self.Donnees.removeColumn(0)            
+        self.col = -3
+        self.row = 0
+        self.btnReini.setEnabled(False)
+        self.btnEnregistrer.setEnabled(False)
+        
+    def reiniGraphique(self):
+        self.TabTension=[]
+        self.btnReiniGra.setEnabled(False)
+ 
+    def enregTab(self):
+        """
+        Pour choisir un dossier d'enregistrement
+        dir_name = QFileDialog.getExistingDirectory()
+        print(dir_name)
+        """
+        file_name = "data" + QDateTime.currentDateTime().toString("_yyyy-MM-dd_hh.mm.ss")
+        file_name, Type = QFileDialog.getSaveFileName(
+            self, 'Save data', file_name,
+            'Text file (*.txt);;CSV file (*.csv);;All files()')
+        # if(file_name == ""):             je n'utilise pas de tableau de retour 
+        #     self.Data.appendHtml(
+        #         "<b style='color:red'>Enregistrement annulé</b>")
+        #     return            
+        with open(file_name, "w") as file:
+            # zip permet d'extraire 2 valeurs de 2 listes
+            for x, y, z in zip(self.Temps, self.Tension, self.Current):
+                file.write("{} {}\n".format(x, y))
+        path = pathlib.Path(file_name)
+        self.Data.appendHtml(path.name +
+                     ' : Enregistrement de {} points fait\n'.format(
+                         len(self.Temps)))
+        
+        selected = self.Donnees.selectedRanges()
+        if len(selected) > 0:
+            texte = ""
+            ligne = ""
+            with open(file_name+"Selected.txt", "w") as file:
+                for i in range(selected[0].topRow(), selected[0].bottomRow() + 1):
+                    for j in range(selected[0].leftColumn(), selected[0].rightColumn() + 1):
+                        if self.Donnees.item(i, j) != None:
+                            texte += self.Donnees.item(i, j).text() + "\t"
+                            ligne += self.Donnees.item(i, j).text() + "\t"
+                        else:
+                            # Sur les colonnes de temps, on ajoute le temps
+                            if j%2==0:
+                                texte += str(i*(float(self.Donnees.item(1, j).text())-float(self.Donnees.item(0, j).text())))+"\t"
+                                ligne += str(i*(float(self.Donnees.item(1, j).text())-float(self.Donnees.item(0, j).text())))+"\t"
+                            else:
+                                texte += "0\t"
+                                ligne += "0\t"
+                                
+                    texte = texte[:-1] + "\n"  # le [:-1] élimine le '\t' en trop
+                    file.write(ligne[:-1] + "\n")
+                    ligne = ""
+                QApplication.clipboard().setText(texte)
+
+
+        
+    def ChangeMode(self, checkState):
+        # Test si la checkbox est cochée
+        if (checkState == Qt.Checked):
+            # Modification de la valeur mini de la spinbox
+            self.spinBox.setMinimum(10)
+        else:
+            self.spinBox.setMinimum(500)
+            
+            
+    def closeEvent(self, event):
+        # S'assurer que le thread se termine proprement à la fermeture de l'application
+        self.close_port_request.emit()
+        self.serial_thread.quit()
+        self.serial_thread.wait() # Attendre que le thread se termine
+        super().closeEvent(event)
+
+
+
+
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    win = Window()
+    win.show()
+    sys.exit(app.exec())
+    
+ 

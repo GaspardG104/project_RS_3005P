@@ -124,16 +124,16 @@ QThread est le thread, pas l'objet qui fait le travail. Son rôle est de gérer 
 son run() est exécuté dans le nouveau thread, mais les autres méthodes de la classe (et donc les signaux/slots connectés à l'interface utilisateur) s'exécutent par défaut dans le
 thread d'où l'objet QThread a été créé (généralement le thread principal). Cela peut entraîner des problèmes de "thread affinity" (affinité de thread) et des crashs.
 Voici comment faire correctement :
- * Créez une classe SerialWorker (qui hérite de QObject).
- * Dans le constructeur de SerialWorker, créez votre instance QSerialPort.
- * Définissez des slots dans SerialWorker pour les commandes que vous voulez envoyer (par exemple, write_data).
- * Connectez les signaux de QSerialPort (comme readyRead()) à des slots dans SerialWorker pour gérer la réception.
- * Créez des signaux dans SerialWorker pour envoyer des données ou des notifications au thread principal (par exemple, data_received, error_occurred).
- * Dans votre MainWindow (thread principal) :
-   * Créez une instance de QThread.
-   * Créez une instance de SerialWorker.
-   * Appelez worker.moveToThread(thread).
-   * Connectez les signaux du worker aux slots de votre MainWindow pour la mise à jour de l'interface.
+ * Créez une classe SerialWorker (qui hérite de QObject).                                              FAIT
+ * Dans le constructeur de SerialWorker, créez votre instance QSerialPort.                             FAIT
+ * Définissez des slots dans SerialWorker pour les commandes que vous voulez envoyer (par exemple, write_data). FAIT
+ * Connectez les signaux de QSerialPort (comme readyRead()) à des slots dans SerialWorker pour gérer la réception.FAIT
+ * Créez des signaux dans SerialWorker pour envoyer des données ou des notifications au thread principal (par exemple, data_received, error_occurred).FAIT
+ * Dans votre MainWindow (thread principal) :FAIT
+   * Créez une instance de QThread.FAIT
+   * Créez une instance de SerialWorker.FAIT
+   * Appelez worker.moveToThread(thread).FAIT
+   * Connectez les signaux du worker aux slots de votre MainWindow pour la mise à jour de l'interface. ###########################################
    * Connectez les signaux de votre MainWindow (par exemple, un clic de bouton) aux slots du worker pour envoyer des commandes.
    * Connectez thread.started à la méthode d'initialisation du worker (par exemple, worker.open_port).
    * Connectez thread.finished aux méthodes de nettoyage du worker (par exemple, worker.close_port).
@@ -186,6 +186,9 @@ class SerialWorker(QObject):
         while self._serial_port.bytesAvailable():
             data = self._serial_port.readAll().data()
             self.data_received.emit(data)
+    def set_current(self, current):
+        self.write_data(f"ISET1:{current}")
+
  
 class MainWindow(QWidget):
     open_port_request = pyqtSignal(str, int)
