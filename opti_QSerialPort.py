@@ -47,14 +47,17 @@ class SerialWorker(QObject):
     port_opened = pyqtSignal(bool, str) # bool success, str message
     port_closed = pyqtSignal()
     error_occurred = pyqtSignal(str)
-
+    valeur_change = pyqtSignal(float)
+    mesures_tableau = pyqtSignal(list)
 
     def __init__(self):
         super().__init__()
         self._serial_port = QSerialPort()
         self._serial_port.readyRead.connect(self._read_data)
         self._is_open = False
+        self.timerMesure = QTimer()
         
+       
     def open_port(self, port_name, baud_rate):
         if self._serial_port.isOpen():
             self._serial_port.close() # Ferme si déjà ouvert
@@ -158,37 +161,14 @@ class SerialWorker(QObject):
     def _set_activate_output(self, outonoff):
         self.write_data(f"OUT{outonoff}")
         
+    def _resdonnees(self):
+        self.Temps, self.Tension, self.Current=[],[],[]
         
+    def _timer_stop(self):
+        self.timerMesure.stop()   
         
-        
-    def _start_mesure(self):
-                # Réinitialistaion des listes de données
-        self.resdonnees() 
-        self.col += 3
-        self.row = 0        
-        #Création de nouvelles colonnes de données
-        self.Donnees.insertColumn(self.col)
-        self.Donnees.insertColumn(self.col + 1)
-        self.Donnees.insertColumn(self.col + 2)
-        # Définition des entêtes de colonnes
-        self.colonne_Labels.append('Temps (s)')
-        self.colonne_Labels.append('Tension (V)')
-        self.colonne_Labels.append('Courant (A)')
-        self.Donnees.setHorizontalHeaderLabels(self.colonne_Labels)     
-        # boucle d'incrémentation des couleurs des courbes
-        if self.color < len(self.tab_couleur)-1:
-            self.color += 1
-        else :
-            self.color = 0
-            # Démarrage du timer d'acquisition
-        self.timerMesure.start(self.spinBox.value())
-        if(self.checkBoxSimu.isChecked()):
-            self.spinBox.value()
-        else:
-            self.spinBox.value()                      
 
-
-    def read_mesure(self):
+    def _read_mesure(self):
         # Génération de l'axe X 
         if len(self.Temps) > 0 and self.row > 0:
             # Si le point 0 existe, on créé le nouveau point en ajoutant le
@@ -234,10 +214,7 @@ class Window(QMainWindow, Ui_MainWindow):
     _close_port_request = pyqtSignal()
     write_data_request = pyqtSignal(bytes)
     
-    
-    
-    
-    
+        
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -246,22 +223,25 @@ class Window(QMainWindow, Ui_MainWindow):
         self.serial_worker = SerialWorker()
         self.serial_worker.moveToThread(self.serial_thread)
  
-        # Connexions des signaux de la GUI aux slots du worker
+        # Connexions des signaux de la GUI aux slots du worker          MainWindow -->Worker
         self.open_port_request.connect(self.serial_worker.open_port)
-        self._close_port_request.connect(self.serial_worker.__close_port)
+        self.close_port_request.connect(self.serial_worker._close_port)
         self.write_data_request.connect(self.serial_worker._write_data)
-        self.btnCommencer.clicked.connect(self.serial_worker._start_mesure)
- 
-        # Connexions des signaux du worker aux slots de la GUI
-        self.serial_worker.data_received.connect(self.majDialAlimV)
-        self.serial_worker.port_opened.connect(self.majDialAlimV)
-        self.serial_worker.port_closed.connect(self.majDialAlimV)
-        self.serial_worker.error_occurred.connect(self.majDialAlimV)
- 
+        
+          
+        # Connexions des signaux du worker aux slots de la GUI          Worker --> MainWindow
+        self.serial_worker.data_received.connect(self.reception_data)
+        self.serial_worker.port_opened.connect(self.handle_port_opened)
+        self.serial_worker.port_closed.connect(self.handle_port_closed)        
+        self.serial_worker.valeur_changee.connect(self.mettre_a_jour_affichage)
+        self.serial_worker.mesures_tableau.connect(self.mettre_a_jour_tableau)
+
+        self.mesure.clicked.connect(self.serial_worker._start_mesure)
+        
+        
         # Démarrer le thread lorsque l'application est prête
         self.serial_thread.start()
-        
-        
+
         # On associe les cliques sur le bouttons à des fonctions
         # self.NomBouton.clicked.connect(self.NomFonction)
         self.btnOnoff.clicked.connect(lambda: self.close())
@@ -271,15 +251,13 @@ class Window(QMainWindow, Ui_MainWindow):
         self.buttonOCP.clicked.connect(self.actionOCP)
         
         # self.indiceOut.clicked.connect(self.desactiveSortie)
-        self.btnCommencer.clicked.connect(self.TimerStartMesure)
         self.btnReini.clicked.connect(self.reiniTab)       
         self.btnEnregistrer.clicked.connect(self.enregTab)
         self.btnReiniGra.clicked.connect(self.reiniGraphique)
         self.btnOnoff.clicked.connect(self.onoff)
         
-        # Dial des Voltes       
-        self.dialVoltage.valueChanged.connect(self.majDialAlimVo)
-        self.dialVoltage.sliderReleased.connect(self.majDialAlimV)
+        # Dial des Voltes   
+        self.dialVoltage.valueChanged.connect(self.majDialAlimV)
         
         # Dial des amperes
         self.dialAmpere.valueChanged.connect(self.majDialAlimA)
@@ -361,8 +339,6 @@ class Window(QMainWindow, Ui_MainWindow):
         value=self.dialVoltage.value()
         self.psu.set_voltage(value)  
         
-    def majDialAlimVo(self, value):
-        self.nbVoltage.display(value) 
               
     def majDialAlimAAff(self):         
         event=self.dialAmpere.event()
@@ -393,18 +369,10 @@ class Window(QMainWindow, Ui_MainWindow):
     #             psu.__set_activate_output("1")
     #             print("sortie",psu.get_info_output())
     
-    def TimerStop(self):
-        self.timerMesure.stop()
-    
-    def resdonnees(self):
-        self.Temps, self.Tension, self.Current=[],[],[]
-    
-
-            
-            
+     
         
-        
-    def Mesure(self):
+    #Tableau de données
+    def TimerStartMesure(self):
         self.btnOnoff.clicked.connect(lambda: self.Mclose()) 
         if self.btnCommencer.text() != "Pause":
             if self.btnCommencer.text() == "Commencer l'enregistrement":
@@ -413,7 +381,30 @@ class Window(QMainWindow, Ui_MainWindow):
                 self.btnEnregistrer.setEnabled(True)
                 self.btnReiniGra.setEnabled(True)
 
-#appeler la fonction qui est dans serial worker                   
+                        # Réinitialistaion des listes de données
+                self.resdonnees() 
+                self.col += 3
+                self.row = 0        
+                #Création de nouvelles colonnes de données
+                self.Donnees.insertColumn(self.col)
+                self.Donnees.insertColumn(self.col + 1)
+                self.Donnees.insertColumn(self.col + 2)
+                # Définition des entêtes de colonnes
+                self.colonne_Labels.append('Temps (s)')
+                self.colonne_Labels.append('Tension (V)')
+                self.colonne_Labels.append('Courant (A)')
+                self.Donnees.setHorizontalHeaderLabels(self.colonne_Labels)     
+                # boucle d'incrémentation des couleurs des courbes
+                if self.color < len(self.tab_couleur)-1:
+                    self.color += 1
+                else :
+                    self.color = 0
+                    # Démarrage du timer d'acquisition
+                self.timerMesure.start(self.spinBox.value())
+                if(self.checkBoxSimu.isChecked()):
+                    self.spinBox.value()
+                else:
+                    self.spinBox.value()                      
                 
             elif self.btnCommencer.text() == "Continuer":
                 self.btnCommencer.setText('Pause')
@@ -422,6 +413,7 @@ class Window(QMainWindow, Ui_MainWindow):
         elif self.btnCommencer.text() == "Pause":
             self.TimerStop()
             self.btnCommencer.setText('Continuer')
+            
      
     def reiniTab(self):
         self.btnCommencer.setText("Commencer l'enregistrement")
