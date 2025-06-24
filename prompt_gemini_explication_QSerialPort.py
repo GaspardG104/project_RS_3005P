@@ -175,7 +175,7 @@ class SerialWorker(QObject):
             self._is_open = False
             self.port_closed.emit()
             print("Port fermé dans le worker.")
- 
+
     def write_data(self, data):
         if self._is_open:
             self._serial_port.write(data)

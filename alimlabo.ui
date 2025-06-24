@@ -850,6 +850,7 @@
     </property>
     <addaction name="actionEnregistrer_la_configuration_des_param_tres"/>
     <addaction name="actionConsole"/>
+    <addaction name="actionQuitter"/>
    </widget>
    <widget class="QMenu" name="menuParam_tres">
     <property name="title">
@@ -960,6 +961,11 @@
     <string>Anglais</string>
    </property>
   </action>
+  <action name="actionQuitter">
+   <property name="text">
+    <string>Quitter</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -975,5 +981,38 @@
   </customwidget>
  </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>dialVoltage</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>nbVoltage</receiver>
+   <slot>display(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>149</x>
+     <y>488</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>170</x>
+     <y>228</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>dialAmpere</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>nbAmpere</receiver>
+   <slot>display(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>343</x>
+     <y>487</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>156</x>
+     <y>370</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

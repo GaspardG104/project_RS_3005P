@@ -204,7 +204,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.dialVoltage.sliderReleased.connect(self.majDialAlimV)
         # Dial des amperes
         self.dialAmpere.valueChanged.connect(self.majDialAlimA)
-        self.dialAmpere.sliderReleased.connect(self.majDialAlimAAff)
+
         # On créé des Timer pour les tâches qui se répètent toutes les X ms
         self.timerMesure = QTimer()
         self.timerMesure.timeout.connect(self.read_Data_Mesure)

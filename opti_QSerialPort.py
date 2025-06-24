@@ -47,8 +47,7 @@ class SerialWorker(QObject):
     port_opened = pyqtSignal(bool, str) # bool success, str message
     port_closed = pyqtSignal()
     error_occurred = pyqtSignal(str)
-    valeur_change = pyqtSignal(float)
-    mesures_tableau = pyqtSignal(list)
+    mesures_received = pyqtSignal(float)
 
     def __init__(self):
         super().__init__()
@@ -123,7 +122,7 @@ class SerialWorker(QObject):
         
     #Récupère le voltage actuel (réel et non celui afficher sur le panneau numérique)
     def get_actual_voltage(self):
-        voltage = float(self.query("VOUT1?"))
+        voltage = float(self._query("VOUT1?"))
         # Check if within limits of possible values
         voltage = voltage if 0 <= voltage <= 30 else np.nan
         return voltage
@@ -160,15 +159,16 @@ class SerialWorker(QObject):
     #Active/Désactive le port de sortie électronique
     def _set_activate_output(self, outonoff):
         self.write_data(f"OUT{outonoff}")
-        
-    def _resdonnees(self):
-        self.Temps, self.Tension, self.Current=[],[],[]
+
         
     def _timer_stop(self):
         self.timerMesure.stop()   
-        
+    
+    #elle doit etre completement fausse cette fonction mais on voit l'idee jesper
+    def _maj_tabs(self, nouvelles_donnees_tabs):
+        self.Temps, self.Tension, self.Current=nouvelles_donnees_tabs[0],nouvelles_donnees_tabs[1],nouvelles_donnees_tabs[2]
 
-    def _read_mesure(self):
+    def _read_mesure(self):             #IL FAUT METTRE mesures_received.emit A LA PLACE DES APPENDS
         # Génération de l'axe X 
         if len(self.Temps) > 0 and self.row > 0:
             # Si le point 0 existe, on créé le nouveau point en ajoutant le
@@ -179,32 +179,21 @@ class SerialWorker(QObject):
         
         # Si on est en mode simu, on ajoute des points aléatoires
         if(self.checkBoxSimu.isChecked()):
-            self.Tension.append(random.uniform(0, 2) + 19)
+            self.mesures_received_voltage.emit()(random.uniform(0, 2) + 19)
         
         # Si on est en mode simu, on ajoute des points aléatoires
         if(self.checkBoxSimu.isChecked()):
             self.Current.append(random.uniform(0, 2) + 4)
         
         else:                           #fait lagger le code probleme d'indexage de liste
-            self.Tension.append(self.psu.get_actual_voltage())
-            self.Current.append(self.psu.get_actual_current())
+            self.Tension.append(self.get_actual_voltage())
+            self.Current.append(self.get_actual_current())
             self.Current.append(0)
         #timer  tension emit lier au display
-            # Affichage de la courbe
-            self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
-            self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
-            self.TabTension.show()
-            row = self.Donnees.rowCount()
-            if self.row >= row:
-                self.Donnees.insertRow(row)
-            self.Donnees.setItem(self.row,self.col,
-                                  QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
-            self.Donnees.setItem(self.row,self.col+1,
-                                  QTableWidgetItem("{:.2f}".format(self.Tension[-1])))
-            self.Donnees.setItem(self.row,self.col+2,
-                                  QTableWidgetItem("{:.2f}".format(self.Current[-1])))
-            self.row += 1        
-
+        
+        self.donnees_mesures.emit(nouveaux_tableaux)
+        
+            
 
 
 
@@ -212,12 +201,17 @@ class SerialWorker(QObject):
 class Window(QMainWindow, Ui_MainWindow):
     open_port_request = pyqtSignal(str, int)
     _close_port_request = pyqtSignal()
-    write_data_request = pyqtSignal(bytes)
+    write_data_request = pyqtSignal(bytes)   
+    dialV_request = pyqtSignal(float)
+    dialA_request = pyqtSignal(float)
+    # V_request = pyqtSignal(float)  pour afficher les valeur réels
+    # A_request = pyqtSignal(float)
+    mesures_request = pyqtSignal(list)
     
-        
+    
     def __init__(self):
         super().__init__()
-        self.setupUi(self)
+        self.setupUi()
  
         self.serial_thread = QThread()
         self.serial_worker = SerialWorker()
@@ -227,24 +221,31 @@ class Window(QMainWindow, Ui_MainWindow):
         self.open_port_request.connect(self.serial_worker.open_port)
         self.close_port_request.connect(self.serial_worker._close_port)
         self.write_data_request.connect(self.serial_worker._write_data)
+        # Dial des Voltes pour modifier la valeurs   
+        self.diaVl_request.valueChanged.connect(self.serial_worker.set_voltage)    
+        # Dial des amperes pour modifier la valeurs
+        self.dialA_request.valueChanged.connect(self.serial_worker.set_current)        
+ 
         
-          
         # Connexions des signaux du worker aux slots de la GUI          Worker --> MainWindow
-        self.serial_worker.data_received.connect(self.reception_data)
-        self.serial_worker.port_opened.connect(self.handle_port_opened)
-        self.serial_worker.port_closed.connect(self.handle_port_closed)        
-        self.serial_worker.valeur_changee.connect(self.mettre_a_jour_affichage)
-        self.serial_worker.mesures_tableau.connect(self.mettre_a_jour_tableau)
-
-        self.mesure.clicked.connect(self.serial_worker._start_mesure)
         
+        # Pour plus tard ca dessous
+        # self.serial_worker.data_received.connect(self.reception_data)
+        # self.serial_worker.port_opened.connect(self.handle_port_opened)
+        # self.serial_worker.port_closed.connect(self.handle_port_closed)        
         
+        self.serial_worker.mesures_received_voltage.connect(self.tableau(nouveaux_tableaux)) # le tableau recupere les données de _read_mesure pour les affichées
+       
         # Démarrer le thread lorsque l'application est prête
         self.serial_thread.start()
+        
+        
+# BIEN PENSER A FAIRE LA SEPARATION SERIAL/UI
+
+    def setupUi(self):
 
         # On associe les cliques sur le bouttons à des fonctions
         # self.NomBouton.clicked.connect(self.NomFonction)
-        self.btnOnoff.clicked.connect(lambda: self.close())
         
         # fichier led.h / promotion style sheet
         self.buttonLOCK.clicked.connect(self.bloquePanneau)
@@ -255,13 +256,6 @@ class Window(QMainWindow, Ui_MainWindow):
         self.btnEnregistrer.clicked.connect(self.enregTab)
         self.btnReiniGra.clicked.connect(self.reiniGraphique)
         self.btnOnoff.clicked.connect(self.onoff)
-        
-        # Dial des Voltes   
-        self.dialVoltage.valueChanged.connect(self.majDialAlimV)
-        
-        # Dial des amperes
-        self.dialAmpere.valueChanged.connect(self.majDialAlimA)
-        self.dialAmpere.sliderReleased.connect(self.majDialAlimAAff)
         
         # On créé des Timer pour les tâches qui se répètent toutes les X ms
         self.checkBoxSimu.stateChanged.connect(self.ChangeMode)
@@ -295,7 +289,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.TabTension.showGrid(x = True, y = True, alpha = 0.3)        
 
         
-        
+        self.actionQuitter.triggered.connect(self.closeapp)
         
         # Connecter le signal finished du thread à la suppression du worker
         self.serial_thread.finished.connect(self.serial_worker.deleteLater)
@@ -335,17 +329,11 @@ class Window(QMainWindow, Ui_MainWindow):
             self.dialVoltage.setNotchesVisible(True)
             self.dialAmpere.setNotchesVisible(True) 
     
-    def majDialAlimV(self):
-        value=self.dialVoltage.value()
-        self.psu.set_voltage(value)  
-        
-              
-    def majDialAlimAAff(self):         
-        event=self.dialAmpere.event()
-        self.psu.set_current(event)  
-   
-    def majDialAlimA(self, value):
-        self.nbAmpere.display(value)
+    def dial_get_voltage(self):
+        return 0
+           
+    def dial_get_current(self, value):
+        self.dialVoltage.valueChanged.connect(self.SerialWorker.set_current) 
             
     # def realV(self, value):
     # with PowerSupply() as psu:
@@ -373,7 +361,7 @@ class Window(QMainWindow, Ui_MainWindow):
         
     #Tableau de données
     def TimerStartMesure(self):
-        self.btnOnoff.clicked.connect(lambda: self.Mclose()) 
+        self.btnOnoff.clicked.connect(lambda: self.closeapp()) 
         if self.btnCommencer.text() != "Pause":
             if self.btnCommencer.text() == "Commencer l'enregistrement":
                 self.btnCommencer.setText('Pause')
@@ -412,9 +400,31 @@ class Window(QMainWindow, Ui_MainWindow):
             
         elif self.btnCommencer.text() == "Pause":
             self.TimerStop()
-            self.btnCommencer.setText('Continuer')
-            
-     
+            self.btnCommencer.setText('Continuer')    
+
+    def resdonnees(self):
+        self.Temps, self.Tension, self.Current=[],[],[]
+        
+        
+    def tableau(self, nouveaux_tableaux):   #il recupere les données du calculs de _read_mesure pour y afficher dans le tableau
+        # Récuperation des tableaux :
+            self.Temps, self.Tension, self.Current = nouveaux_tableaux[0], nouveaux_tableaux[1], nouveaux_tableaux[2]
+        # Affichage de la courbe
+            self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
+            self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
+            self.TabTension.show()
+            row = self.Donnees.rowCount()
+            if self.row >= row:
+                self.Donnees.insertRow(row)
+            self.Donnees.setItem(self.row,self.col,
+                                  QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
+            self.Donnees.setItem(self.row,self.col+1,
+                                  QTableWidgetItem("{:.2f}".format(self.Tension[-1])))
+            self.Donnees.setItem(self.row,self.col+2,
+                                  QTableWidgetItem("{:.2f}".format(self.Current[-1])))
+            self.row += 1        
+
+        
     def reiniTab(self):
         self.btnCommencer.setText("Commencer l'enregistrement")
         self.resdonnees()
@@ -489,7 +499,7 @@ class Window(QMainWindow, Ui_MainWindow):
             self.spinBox.setMinimum(500)
             
             
-    def close(self):
+    def closeapp(self):
         # On stoppe les mesures si l'alimentation a été initialisée
         if(self.alimRS is not None):
             self.alimRS.exit()
