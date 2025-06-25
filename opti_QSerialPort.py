@@ -47,8 +47,10 @@ class SerialWorker(QObject):
     port_opened = pyqtSignal(bool, str) # bool success, str message
     port_closed = pyqtSignal()
     error_occurred = pyqtSignal(str)
+    finished = pyqtSignal()
     mesures_received = pyqtSignal(float)
     donnees_mesures = pyqtSignal(list)
+    command = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -61,7 +63,7 @@ class SerialWorker(QObject):
         self.Current = []
         self.row = 0
         
-       
+ 
     def open_port(self, port_name, baud_rate):
         if self._serial_port.isOpen():
             self._serial_port.close() # Ferme si déjà ouvert
@@ -164,13 +166,14 @@ class SerialWorker(QObject):
     #Active/Désactive le port de sortie électronique
     def _set_activate_output(self, outonoff):
         self._write_data(f"OUT{outonoff}")
-
-        
-    def _timer_stop(self):
+            
+    def _stop_mesure_timer(self):
         self.timerMesure.stop()   
 
 
     def _read_mesure(self):             #IL FAUT METTRE mesures_received.emit A LA PLACE DES APPENDS
+        #démarage du timer
+        self.timerMesure()
         # Génération de l'axe X 
         if len(self.Temps) > 0 and self.row > 0:
             # Si le point 0 existe, on créé le nouveau point en ajoutant le
@@ -202,16 +205,17 @@ class SerialWorker(QObject):
 
 class Window(QMainWindow, Ui_MainWindow):
     open_port_request = pyqtSignal(str, int)
-    _close_port_request = pyqtSignal()
+    _close_port_request = pyqtSignal(str, int)
     write_data_request = pyqtSignal(bytes)   
-    dialV_request = pyqtSignal(int)
-    dialA_request = pyqtSignal(int)
+    dialV_request = pyqtSignal(float)
+    dialA_request = pyqtSignal(float)
     # V_request = pyqtSignal(float)  pour afficher les valeur réels
     # A_request = pyqtSignal(float)
     mesures_request = pyqtSignal(list)
     LOCK_request = pyqtSignal(int)
-    timer_request = pyqtSignal()
-    
+    start_read_mesures_request = pyqtSignal() 
+    stop_mesure_timer_request = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -221,16 +225,19 @@ class Window(QMainWindow, Ui_MainWindow):
         self.serial_worker.moveToThread(self.serial_thread)
         self.nouveaux_tableaux=[]
         # Connexions des signaux de la GUI aux slots du worker          MainWindow -->Worker
-        # self.open_port_request.connect(self.serial_worker.open_port)
-        # self.close_port_request.connect(self.serial_worker._close_port)
+        self.open_port_request.connect(self.serial_worker.open_port)
+        self.close_port_request.connect(self.serial_worker._close_port)
         # self.write_data_request.connect(self.serial_worker._write_data)
         # Dial des Voltes pour modifier la valeurs   
-        self.dialV_request.emit(self.serial_worker.set_voltage)    
+        self.dialV_request.connect(self.serial_worker.set_voltage)    
         # Dial des amperes pour modifier la valeurs
-        self.dialA_request.emit(self.serial_worker.set_current)   
+        self.dialA_request.connect(self.serial_worker.set_current)   
         #Bloquage du panneau
-        self.LOCK_request.emit(self.serial_worker._set_lock)
- 
+        self.LOCK_request.connect(self.serial_worker._set_lock)
+        #Commence le timer
+        self.start_read_mesures_request.connect(self.serial_worker._read_mesure)
+        #Arrete  le timer
+        self.stop_mesure_timer_request.connect(self.serial_worker._stop_mesure_timer)
         
         # Connexions des signaux du worker aux slots de la GUI          Worker --> MainWindow
         
@@ -298,6 +305,14 @@ class Window(QMainWindow, Ui_MainWindow):
         self.TabTension.setLabel('bottom','Temps (s)', color ='black')
         self.TabTension.showGrid(x = True, y = True, alpha = 0.3)        
 
+    def request_open_port(self):
+        port_name = self.port_combo.currentText()
+        baud_rate = int(self.baud_combo.currentText())
+        self.open_port_request.emit(port_name, baud_rate)
+ 
+    def request_close_port(self):
+        self.close_port_request.emit()
+
     
       
         
@@ -320,25 +335,25 @@ class Window(QMainWindow, Ui_MainWindow):
         
     def bloquePanneau(self):
         if (self.buttonLOCK.isChecked()):
-            self.set_lock(1)
+            self.LOCK_request.emit(0)
             self.led_lock.setState(0)
             self.dialVoltage.setEnabled(False)
             self.dialAmpere.setEnabled(False)
             self.dialVoltage.setNotchesVisible(False)
             self.dialAmpere.setNotchesVisible(False)
         else:
-            self.psu.set_lock(0)
+            self.LOCK_request.emit(0)
             self.led_lock.setState(1)
             self.dialVoltage.setEnabled(True)
             self.dialAmpere.setEnabled(True)
             self.dialVoltage.setNotchesVisible(True)
             self.dialAmpere.setNotchesVisible(True) 
     
-    def dialVoltage(self):
-        self.dialVoltage = self.DialV_request
+    def dialVoltage(self, value):
+        self.dialV_request.emit(float(value))
            
-    def dialAmpere(self):
-        self.dialAmpere = self.DialA_request
+    def dialAmpere(self, value):
+        self.dialA_request.emit(float(value))
 
     # def realV(self, value):
     # with PowerSupply() as psu:
@@ -366,7 +381,6 @@ class Window(QMainWindow, Ui_MainWindow):
         
     #Tableau de données
     def TimerStartMesure(self):
-        self.btnOnoff.clicked.connect(lambda: self.closeapp()) 
         if self.btnCommencer.text() != "Pause":
             if self.btnCommencer.text() == "Commencer l'enregistrement":
                 self.btnCommencer.setText('Pause')
@@ -500,12 +514,14 @@ class Window(QMainWindow, Ui_MainWindow):
 
         
     def ChangeMode(self, checkState):
-        # Test si la checkbox est cochée
-        if (checkState == Qt.Checked):
-            # Modification de la valeur mini de la spinbox
+        info_spinbox = (checkState == Qt.Checked)
+        if info_spinbox:
             self.spinBox.setMinimum(10)
         else:
             self.spinBox.setMinimum(500)
+        # Informer le worker du changement de modepour le timer de mesure
+        if self.serial_worker._mesure_timer.isActive():
+            self.start_mesure_timer_request.emit(self.spinBox.value(), info_spinbox)
             
             
     def closeapp(self):
