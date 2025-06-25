@@ -48,6 +48,7 @@ class SerialWorker(QObject):
     port_closed = pyqtSignal()
     error_occurred = pyqtSignal(str)
     mesures_received = pyqtSignal(float)
+    donnees_mesures = pyqtSignal(list)
 
     def __init__(self):
         super().__init__()
@@ -55,6 +56,10 @@ class SerialWorker(QObject):
         self._serial_port.readyRead.connect(self._read_data)
         self._is_open = False
         self.timerMesure = QTimer()
+        self.Temps = []
+        self.Tension = []
+        self.Current = []
+        self.row = 0
         
        
     def open_port(self, port_name, baud_rate):
@@ -93,12 +98,12 @@ class SerialWorker(QObject):
     def _query(self, command):
         if self._serial_port.isOpen():
             self._write_data(command.encode())
-            ret = self.dev.readline().decode("utf-8").strip()
+            ret = self.readline().decode("utf-8").strip()
             # Query again if empty string received
             if ret == "":
                 #time.sleep(0.2)
                 self._write_data(command.encode())
-                ret = self.dev.readline().decode("utf-8").strip()
+                ret = self.readline().decode("utf-8").strip()
             return ret
         else:
             self.error_occurred.emit("Impossible d'écrire: le port n'est pas ouvert.")
@@ -118,7 +123,7 @@ class SerialWorker(QObject):
     
     #Modifie le courrent (Ampere)
     def set_current(self, current):
-        self.write_data(f"ISET1:{current}")
+        self._write_data(f"ISET1:{current}")
         
     #Récupère le voltage actuel (réel et non celui afficher sur le panneau numérique)
     def get_actual_voltage(self):
@@ -129,21 +134,21 @@ class SerialWorker(QObject):
     
     #Modifie le voltage (Volte)
     def set_voltage(self, voltage):
-        self.write_data(f"VSET1:{voltage}")
+        self._write_data(f"VSET1:{voltage}")
     
     #Active/désactive le mode LOCK qui vérouille le panneau de controle
-    def set_lock(self, loconoff):
+    def _set_lock(self, loconoff):
         if loconoff == 1:
-            self.write_data("LOCK1\n")
+            self._write_data("LOCK1\n")
         else:
-            self.write_data("LOCK0\n")
+            self._write_data("LOCK0\n")
             
     #Active/désactive le mode OCP (Over Current Protection)    
     def set_ocp(self, onoff):
         if onoff == 1:
-            self.write_data("OCP1")
+            self._write_data("OCP1")
         else:
-            self.write_data("OCP0")
+            self._write_data("OCP0")
             
     #Demande si le port de sortie électronique est activer ou désactiver           
     def get_info_output(self):
@@ -158,15 +163,12 @@ class SerialWorker(QObject):
         
     #Active/Désactive le port de sortie électronique
     def _set_activate_output(self, outonoff):
-        self.write_data(f"OUT{outonoff}")
+        self._write_data(f"OUT{outonoff}")
 
         
     def _timer_stop(self):
         self.timerMesure.stop()   
-    
-    #elle doit etre completement fausse cette fonction mais on voit l'idee jesper
-    def _maj_tabs(self, nouvelles_donnees_tabs):
-        self.Temps, self.Tension, self.Current=nouvelles_donnees_tabs[0],nouvelles_donnees_tabs[1],nouvelles_donnees_tabs[2]
+
 
     def _read_mesure(self):             #IL FAUT METTRE mesures_received.emit A LA PLACE DES APPENDS
         # Génération de l'axe X 
@@ -188,10 +190,10 @@ class SerialWorker(QObject):
         else:                           #fait lagger le code probleme d'indexage de liste
             self.Tension.append(self.get_actual_voltage())
             self.Current.append(self.get_actual_current())
-            self.Current.append(0)
+
         #timer  tension emit lier au display
-        
-        self.donnees_mesures.emit(nouveaux_tableaux)
+        self.nouveaux_tableaux= [self.Temps, self.Tension, self.Current]
+        self.donnees_mesures.emit(self.nouveaux_tableaux)
         
             
 
@@ -202,29 +204,32 @@ class Window(QMainWindow, Ui_MainWindow):
     open_port_request = pyqtSignal(str, int)
     _close_port_request = pyqtSignal()
     write_data_request = pyqtSignal(bytes)   
-    dialV_request = pyqtSignal(float)
-    dialA_request = pyqtSignal(float)
+    dialV_request = pyqtSignal(int)
+    dialA_request = pyqtSignal(int)
     # V_request = pyqtSignal(float)  pour afficher les valeur réels
     # A_request = pyqtSignal(float)
     mesures_request = pyqtSignal(list)
-    
+    LOCK_request = pyqtSignal(int)
+    timer_request = pyqtSignal()
     
     def __init__(self):
         super().__init__()
-        self.setupUi()
- 
+        self.setupUi(self)
+        self.init_ui()
         self.serial_thread = QThread()
         self.serial_worker = SerialWorker()
         self.serial_worker.moveToThread(self.serial_thread)
- 
+        self.nouveaux_tableaux=[]
         # Connexions des signaux de la GUI aux slots du worker          MainWindow -->Worker
-        self.open_port_request.connect(self.serial_worker.open_port)
-        self.close_port_request.connect(self.serial_worker._close_port)
-        self.write_data_request.connect(self.serial_worker._write_data)
+        # self.open_port_request.connect(self.serial_worker.open_port)
+        # self.close_port_request.connect(self.serial_worker._close_port)
+        # self.write_data_request.connect(self.serial_worker._write_data)
         # Dial des Voltes pour modifier la valeurs   
-        self.diaVl_request.valueChanged.connect(self.serial_worker.set_voltage)    
+        self.dialV_request.emit(self.serial_worker.set_voltage)    
         # Dial des amperes pour modifier la valeurs
-        self.dialA_request.valueChanged.connect(self.serial_worker.set_current)        
+        self.dialA_request.emit(self.serial_worker.set_current)   
+        #Bloquage du panneau
+        self.LOCK_request.emit(self.serial_worker._set_lock)
  
         
         # Connexions des signaux du worker aux slots de la GUI          Worker --> MainWindow
@@ -234,15 +239,20 @@ class Window(QMainWindow, Ui_MainWindow):
         # self.serial_worker.port_opened.connect(self.handle_port_opened)
         # self.serial_worker.port_closed.connect(self.handle_port_closed)        
         
-        self.serial_worker.mesures_received_voltage.connect(self.tableau(nouveaux_tableaux)) # le tableau recupere les données de _read_mesure pour les affichées
+        self.serial_worker.donnees_mesures.connect(self.tableau) # le tableau recupere les données de _read_mesure pour les affichées
        
         # Démarrer le thread lorsque l'application est prête
         self.serial_thread.start()
         
+        self.actionQuitter.triggered.connect(self.closeapp)
+        
+        # Connecter le signal finished du thread à la suppression du worker
+        self.serial_thread.finished.connect(self.serial_worker.deleteLater)
+        self.serial_thread.finished.connect(self.serial_thread.deleteLater)   
         
 # BIEN PENSER A FAIRE LA SEPARATION SERIAL/UI
 
-    def setupUi(self):
+    def init_ui(self):
 
         # On associe les cliques sur le bouttons à des fonctions
         # self.NomBouton.clicked.connect(self.NomFonction)
@@ -288,12 +298,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.TabTension.setLabel('bottom','Temps (s)', color ='black')
         self.TabTension.showGrid(x = True, y = True, alpha = 0.3)        
 
-        
-        self.actionQuitter.triggered.connect(self.closeapp)
-        
-        # Connecter le signal finished du thread à la suppression du worker
-        self.serial_thread.finished.connect(self.serial_worker.deleteLater)
-        self.serial_thread.finished.connect(self.serial_thread.deleteLater)      
+    
       
         
 # Action des boutons et voyants
@@ -315,7 +320,7 @@ class Window(QMainWindow, Ui_MainWindow):
         
     def bloquePanneau(self):
         if (self.buttonLOCK.isChecked()):
-            self.psu.set_lock(1)
+            self.set_lock(1)
             self.led_lock.setState(0)
             self.dialVoltage.setEnabled(False)
             self.dialAmpere.setEnabled(False)
@@ -329,12 +334,12 @@ class Window(QMainWindow, Ui_MainWindow):
             self.dialVoltage.setNotchesVisible(True)
             self.dialAmpere.setNotchesVisible(True) 
     
-    def dial_get_voltage(self):
-        return 0
+    def dialVoltage(self):
+        self.dialVoltage = self.DialV_request
            
-    def dial_get_current(self, value):
-        self.dialVoltage.valueChanged.connect(self.SerialWorker.set_current) 
-            
+    def dialAmpere(self):
+        self.dialAmpere = self.DialA_request
+
     # def realV(self, value):
     # with PowerSupply() as psu:
     # self.realVoltage.display(psu.get_actual_voltage())
@@ -406,9 +411,13 @@ class Window(QMainWindow, Ui_MainWindow):
         self.Temps, self.Tension, self.Current=[],[],[]
         
         
-    def tableau(self, nouveaux_tableaux):   #il recupere les données du calculs de _read_mesure pour y afficher dans le tableau
+    def tableau(self, nouveaux_tableaux : list):   #il recupere les données du calculs de _read_mesure pour y afficher dans le tableau //// Plusieurs maniere d'y écrire
         # Récuperation des tableaux :
-            self.Temps, self.Tension, self.Current = nouveaux_tableaux[0], nouveaux_tableaux[1], nouveaux_tableaux[2]
+            self.Temps = nouveaux_tableaux[0]
+            self.Tension = nouveaux_tableaux[1]
+            self.Current= nouveaux_tableaux[2]
+            
+            
         # Affichage de la courbe
             self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
             self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))

@@ -371,8 +371,8 @@ class Window(QMainWindow, Ui_MainWindow):
         
         else:                           #fait lagger le code probleme d'indexage de liste
             self.Tension.append(self.psu.get_actual_voltage())
-            #self.Current.append(self.psu.get_actual_current())
-            self.Current.append(0)
+            self.Current.append(self.psu.get_actual_current())
+
         
             # Affichage de la courbe
             self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
