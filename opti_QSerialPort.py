@@ -215,6 +215,7 @@ class Window(QMainWindow, Ui_MainWindow):
     LOCK_request = pyqtSignal(int)
     start_read_mesures_request = pyqtSignal() 
     stop_mesure_timer_request = pyqtSignal()
+    info_spinBox = pyqtSignal(float)
 
     def __init__(self):
         super().__init__()
@@ -238,7 +239,8 @@ class Window(QMainWindow, Ui_MainWindow):
         self.start_read_mesures_request.connect(self.serial_worker._read_mesure)
         #Arrete  le timer
         self.stop_mesure_timer_request.connect(self.serial_worker._stop_mesure_timer)
-        
+        #envoi un signal pour la spinBox
+        self.info_spinBox.connect(self.serial_worker._spin_box)
         # Connexions des signaux du worker aux slots de la GUI          Worker --> MainWindow
         
         # Pour plus tard ca dessous
@@ -278,7 +280,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.checkBoxSimu.stateChanged.connect(self.ChangeMode)
         self.alimRS = None
         
-        # tableau graph tension
+        # tableau graphe, je pense qu'il faut les déclarés que une fois mais jsp où et comment...
         self.Temps = []
         self.Tension = []
         self.Current=[]
@@ -383,6 +385,7 @@ class Window(QMainWindow, Ui_MainWindow):
     def TimerStartMesure(self):
         if self.btnCommencer.text() != "Pause":
             if self.btnCommencer.text() == "Commencer l'enregistrement":
+                self.start_read_mesures_request.emit()
                 self.btnCommencer.setText('Pause')
                 self.btnReini.setEnabled(True)
                 self.btnEnregistrer.setEnabled(True)
@@ -418,7 +421,7 @@ class Window(QMainWindow, Ui_MainWindow):
                 self.timerMesure.start(self.spinBox.value())
             
         elif self.btnCommencer.text() == "Pause":
-            self.TimerStop()
+            self.stop_mesure_timer_request.emit()
             self.btnCommencer.setText('Continuer')    
 
     def resdonnees(self):
