@@ -412,9 +412,9 @@ class Window(QMainWindow, Ui_MainWindow):
                     # Démarrage du timer d'acquisition
                 self.timerMesure.start(self.spinBox.value())
                 if(self.checkBoxSimu.isChecked()):
-                    self.spinBox.value()
+                    self.spinBox(self.info_spinBox.emit.value())                      
                 else:
-                    self.spinBox.value()                      
+                    self.spinBox(self.info_spinBox.emit.value())                      
                 
             elif self.btnCommencer.text() == "Continuer":
                 self.btnCommencer.setText('Pause')
