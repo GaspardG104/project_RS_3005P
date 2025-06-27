@@ -39,6 +39,7 @@ class SerialWorker(QObject):
     port_closed = pyqtSignal()
     error_occurred = pyqtSignal(str)
     finished = pyqtSignal()
+    
     mesures_received = pyqtSignal(float)
     donnees_mesures = pyqtSignal(list)
     
@@ -51,6 +52,7 @@ class SerialWorker(QObject):
         super().__init__()
         self._serial_port = QSerialPort()
         self._serial_port.readyRead.connect(self._read_data)
+        self._write_request.connect(self._write_data)
         self._is_open = False
         self.timerMesure = QTimer()
         self.Temps = []
@@ -95,51 +97,32 @@ class SerialWorker(QObject):
             
     def _query(self, command):
         if self._serial_port.isOpen():
-            self._write_data(command.encode())
-            ret = self.readline().decode("utf-8").strip()
-            # Query again if empty string received
-            if ret == "":
-                #time.sleep(0.2)
-                self._write_data(command.encode())
-                ret = self.readline().decode("utf-8").strip()
-            return ret
+            self._write_data.emit((command + "\n").encode('ascii'))# je sais âs si l'encodage en ascii est utile en vrais
         else:
             self.error_occurred.emit("Impossible d'écrire: le port n'est pas ouvert.")
                 
 #Partie des commandes de l'alimentation:
     
-    #Demande l'identification RS-3005P du matériel
     def get_idn(self):
-        return self.query("*IDN?")
-    
-    #Récupère le courrent actuel (réel et non celui afficher sur le panneau numérique)
+        self._query("*IDN?")
+
+    def set_voltage(self, voltage):
+        self._query(f"VSET1:{voltage}")
+
+    def get_actual_voltage(self):
+        self._query("VOUT1?")
+
     def get_actual_current(self):
-        current = float(self.query("IOUT1?"))
-        # Check if within limits of possible values
-        current = current if 0 <= current <= 5 else np.nan
-        return current
+        self._query("IOUT1?")
     
     #Modifie le courrent (Ampere)
     def set_current(self, current):
-        self._write_data(f"ISET1:{current}")
+        self._query(f"ISET1:{current}")
         
-    #Récupère le voltage actuel (réel et non celui afficher sur le panneau numérique)
-    def get_actual_voltage(self):
-        voltage = float(self._query("VOUT1?"))
-        # Check if within limits of possible values
-        voltage = voltage if 0 <= voltage <= 30 else np.nan
-        return voltage
-    
-    #Modifie le voltage (Volte)
-    def set_voltage(self, voltage):
-        self._write_data(f"VSET1:{voltage}")
     
     #Active/désactive le mode LOCK qui vérouille le panneau de controle
     def _set_lock(self, loconoff):
-        if loconoff == 1:
-            self._write_data("LOCK1\n")
-        else:
-            self._write_data("LOCK0\n")
+        self._query(f"OUT{loconoff}")
             
     #Active/désactive le mode OCP (Over Current Protection)    
     def set_ocp(self, onoff):
