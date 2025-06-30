@@ -22,6 +22,7 @@ from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
 import random
 import pathlib
 from math import log
+import time
 
 class SerialWorker(QObject):
     """
@@ -53,7 +54,7 @@ class SerialWorker(QObject):
         self._query_timeout_timer = QTimer(self)
         self._query_timeout_timer.setSingleShot(True)
         self._query_timeout_timer.timeout.connect(self._on_query_timeout)
-        
+        self.query("IOUT1?")
     @pyqtSlot(str, int)
     def open_port(self, port_name, baud_rate):
         """Ouvre le port série avec les paramètres spécifiés."""
@@ -217,12 +218,11 @@ class SerialWorker(QObject):
             self.error_occurred.emit("Port non ouvert pour la lecture des données.")
             return
         
-        Temps = 0
-        Tension = self.get_voltage() # Appelle votre méthode get_voltage qui utilise query
-        Current = self.get_current() # Appelle votre méthode get_current qui utilise query
+        TensionValue = self.get_voltage() # Appelle votre méthode get_voltage qui utilise query
+        CurrentValue = self.get_current() # Appelle votre méthode get_current qui utilise query
         #timestamp = mettre un deuxieme timer pour les mesures
         
-        self.table_mesures_ready.emit([f"{Temps:.2f}", f"{Tension:.2f} V", f"{Current:.2f} A"])
+        self.table_mesures_ready.emit([TensionValue, CurrentValue])
         
         
 
@@ -255,12 +255,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.btnOn.clicked.connect(self.start_connection)
         self.btnOff.clicked.connect(self.stop_connection)
-        self.btnCommencer.connect(self.TimerStartMesure())
+        self.btnCommencer.clicked.connect(self.TimerStartMesure)
         self.btn_idn.clicked.connect(self._on_request_idn_clicked)
 
         # Appelle directement la méthode du worker
         self.spinVoltage.valueChanged.connect(self.worker.set_voltage)
+        
 
+        
     
         # self.btn_get_voltage = QPushButton("Obtenir Tension Actuelle")
         # # Connecte à une nouvelle méthode dans MainWindow pour gérer la réponse
@@ -294,6 +296,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.Temps = []
         self.Tension = []
         self.Current=[]
+        
+        self.timerMesure = QTimer()
+        self.timerMesure.timeout.connect(self.read_Data_Mesure)
+        
         
         # Indice de couleur pour les courbes
         self.color = 0
@@ -394,48 +400,52 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def resdonnees(self):
         self.Temps, self.Tension, self.Current=[],[],[]
         
+    def TimerStop(self):
+        self.timerMesure.stop()
         
         
-        
-    @pyqtSlot(list)
-    def add_mesures_to_table(self, data_row_from_worker):
-        """
-        Reçoit une liste de données du worker et l'ajoute au QTableWidget.
-        Ajoute un timestamp dans le thread de l'UI.
-        """
-
-        # Construisez la ligne complète pour le tableau (timestamp + données du worker)
-
-        row_position = self.mesuresTable.rowCount()
-        self.mesuresTable.insertRow(row_position) # Insère une nouvelle ligne à la fin
-
-        
-        self.mesuresTable.scrollToBottom() # Fait défiler le tableau vers le bas
-
     @pyqtSlot(list) 
-    def tableau(self, data_row_from_worker):   #il recupere les données du calculs de _read_mesure pour y afficher dans le tableau //// Plusieurs maniere d'y écrire
-        # Récuperation des tableaux :
-            self.Temps = data_row_from_worker[0]
-            self.Tension = data_row_from_worker[1]
-            self.Current= data_row_from_worker[2]
-
+    def tableau(self, data_row_from_worker):   
+        # Génération de l'axe X 
+        if len(self.Temps) > 0 and self.row > 0:
+            # Si le point 0 existe, on créé le nouveau point en ajoutant le
+            # point précédent à la valeur de la vitesse d'acquisition
+            self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
+        else:
+            self.Temps.append(0)
+        
+        # Si on est en mode simu, on ajoute des points aléatoires
+        if(self.checkBoxSimu.isChecked()):
+            self.Tension.append(random.uniform(0, 2) + 29)
+            self.Current.append(random.uniform(0, 2) + 4)
+        
+        else:                     
+        # Récuperation des tableaux :            
+            self.TensionValue, self.CurrentValue = data_row_from_worker
+ 
+        self.graph_time_value = self.timerMesure
+        
+        self.Temps.append(self.graph_time_value)
+        self.Tension.append(self.TensionValue)
+        self.Current.append(self.CurrentValue)
             
         # Affichage de la courbe
-            self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
-            self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
-            self.TabTension.show()
-            row = self.Donnees.rowCount()
-            if self.row >= row:
-                self.Donnees.insertRow(row)
-            self.Donnees.setItem(self.row,self.col,
-                                  QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
-            self.Donnees.setItem(self.row,self.col+1,
-                                  QTableWidgetItem("{:.2f}".format(self.Tension[-1])))
-            self.Donnees.setItem(self.row,self.col+2,
-                                  QTableWidgetItem("{:.2f}".format(self.Current[-1])))
-            self.row += 1     
-            
-            self.Donnees.scrollToBottom()
+        self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
+        self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
+        self.TabTension.show()
+        row = self.Donnees.rowCount()
+        #if self.row >= row:
+        #    self.Donnees.insertRow(row)
+        self.Donnees.insertRow(row)
+        self.Donnees.setItem(self.row,self.col,
+                              QTableWidgetItem("{:.2f}".format(self.TempsValue)))
+        self.Donnees.setItem(self.row,self.col+1,
+                              QTableWidgetItem("{:.2f}".format(self.TensionValue)))
+        self.Donnees.setItem(self.row,self.col+2,
+                              QTableWidgetItem("{:.2f}".format(self.CurrentValue)))
+        self.row += 1     
+        
+        self.Donnees.scrollToBottom()
 
     def TimerStartMesure(self):
         if self.btnCommencer.text() != "Pause":
@@ -493,7 +503,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnEnregistrer.setEnabled(False)
         
     def reiniGraphique(self):
-        self.TabTension=[]
+        self.Temps, self.Tension, self.Current=[],[],[]
         self.btnReiniGra.setEnabled(False)
  
     def enregTab(self):
