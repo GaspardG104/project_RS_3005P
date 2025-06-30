@@ -37,6 +37,8 @@ class SerialWorker(QObject):
     _write_request = pyqtSignal(bytes)
     # Signal interne pour les requêtes, utilisé par la fonction query
     _query_response_received = pyqtSignal(str)
+    
+    table_mesures_ready = pyqtSignal(list)
 
     def __init__(self):
         super().__init__()
@@ -44,7 +46,6 @@ class SerialWorker(QObject):
         self._serial_port.readyRead.connect(self._read_data)
         self._write_request.connect(self._write_data)
         self._is_open = False
-        
         # Variables pour la fonction query
         self._query_data_buffer = ""
         self._query_waiting_for_response = False
@@ -52,7 +53,7 @@ class SerialWorker(QObject):
         self._query_timeout_timer = QTimer(self)
         self._query_timeout_timer.setSingleShot(True)
         self._query_timeout_timer.timeout.connect(self._on_query_timeout)
-
+        
     @pyqtSlot(str, int)
     def open_port(self, port_name, baud_rate):
         """Ouvre le port série avec les paramètres spécifiés."""
@@ -119,7 +120,7 @@ class SerialWorker(QObject):
 
             except UnicodeDecodeError:
                 self.error_occurred.emit(f"Erreur de décodage des données: {data!r}")
-
+                
     @pyqtSlot()
     def _on_query_timeout(self):
         """Appelé si le timeout de la requête est atteint."""
@@ -211,6 +212,19 @@ class SerialWorker(QObject):
         """Active (1) ou désactive (0) la sortie de l'alimentation."""
         self.send_command(f"OUT{int(state)}")
 
+    def _read_mesures(self):
+        if not self._is_open:
+            self.error_occurred.emit("Port non ouvert pour la lecture des données.")
+            return
+        
+        Temps = 0
+        Tension = self.get_voltage() # Appelle votre méthode get_voltage qui utilise query
+        Current = self.get_current() # Appelle votre méthode get_current qui utilise query
+        #timestamp = mettre un deuxieme timer pour les mesures
+        
+        self.table_mesures_ready.emit([f"{Temps:.2f}", f"{Tension:.2f} V", f"{Current:.2f} A"])
+        
+        
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     """
@@ -220,7 +234,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     # Signaux pour demander au SerialWorker d'effectuer des actions
     open_port_signal = pyqtSignal(str, int)
     close_port_signal = pyqtSignal()
-
+    start_read_mesures_request = pyqtSignal()
+    #pour le timer :
+    start_timer_read_signal = pyqtSignal(int) # int = intervalle en ms
+    stop_timer_read_signal = pyqtSignal()
+    
+    
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -236,13 +255,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.btnOn.clicked.connect(self.start_connection)
         self.btnOff.clicked.connect(self.stop_connection)
-
+        self.btnCommencer.connect(self.TimerStartMesure())
         self.btn_idn.clicked.connect(self._on_request_idn_clicked)
 
         # Appelle directement la méthode du worker
         self.spinVoltage.valueChanged.connect(self.worker.set_voltage)
 
-
+    
         # self.btn_get_voltage = QPushButton("Obtenir Tension Actuelle")
         # # Connecte à une nouvelle méthode dans MainWindow pour gérer la réponse
         # self.btn_get_voltage.clicked.connect(self._on_get_voltage_clicked)
@@ -268,11 +287,44 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # btn_layout.addWidget(self.btn_output_off)
 
         # layout.addLayout(btn_layout)
+        
+        self.worker.table_mesures_ready.connect(self.tableau)
+        
+        # tableau graphe, je pense qu'il faut les déclarés que une fois mais jsp où et comment...
+        self.Temps = []
+        self.Tension = []
+        self.Current=[]
+        
+        # Indice de couleur pour les courbes
+        self.color = 0
+        
+        # Liste des couleurs de courbes
+        self.tab_couleur = ['b','g','r','c', 'm','y','black']
+        self.col = -3
+        self.colonne_Labels = ['Temps (s)','Tension (V)','Courant (A)']
+        self.row = 0
+        
+        # Couleur du fond du graphe
+        self.TabTension.setBackground("w")
+        
+        # Entête du graphe 
+        self.TabTension.setTitle('Monitoring de la tension', color ='b')
+        
+        # Titre de l'axe vertical
+        self.TabTension.setLabel('left','Tension (V) et Courant (A)', color ='black')
+        
+        # Titre de l'axe horizontal
+        self.TabTension.setLabel('bottom','Temps (s)', color ='black')
+        self.TabTension.showGrid(x = True, y = True, alpha = 0.3)        
 
 
         # Connecte les signaux de l'UI au worker
         self.open_port_signal.connect(self.worker.open_port)
         self.close_port_signal.connect(self.worker.close_port)
+        self.start_read_mesures_request.connect(self.worker._read_mesures)
+        #timer : 
+        # self.start_timer_read_signal.connect(self.worker._data_read_timer.start) # Nécessite que le timer soit dans le worker
+        # self.stop_timer_read_signal.connect(self.worker._data_read_timer.stop)
 
         # Connecte les signaux du worker à l'UI
         self.worker.data_received.connect(self.log_data_received) # Pour le logging générique
@@ -326,30 +378,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.log_error("Port non ouvert pour demander l'IDN.")
 
-    def _on_get_voltage_clicked(self):
-        """Gère le clic sur le bouton Get Voltage et affiche la réponse."""
-        if self.worker._is_open:
-            self.console.append("Demande de tension (attente de réponse)...")
-            voltage = self.worker.get_voltage()
-            if not isinstance(voltage, float) or not (0 <= voltage <= 30): # Validation simple
-                self.console.append(f"<span style='color: orange;'>Tension reçue invalide: {voltage}</span>")
-            else:
-                self.console.append(f"<span style='color: darkgreen;'>Tension actuelle: {voltage:.2f} V</span>")
-        else:
-            self.log_error("Port non ouvert pour obtenir la tension.")
-
-    def _on_get_current_clicked(self):
-        """Gère le clic sur le bouton Get Current et affiche la réponse."""
-        if self.worker._is_open:
-            self.console.append("Demande de courant (attente de réponse)...")
-            current = self.worker.get_current()
-            if not isinstance(current, float) or not (0 <= current <= 5): # Validation simple
-                self.console.append(f"<span style='color: orange;'>Courant reçu invalide: {current}</span>")
-            else:
-                self.console.append(f"<span style='color: darkgreen;'>Courant actuel: {current:.3f} A</span>")
-        else:
-            self.log_error("Port non ouvert pour obtenir le courant.")
-
 
     def closeEvent(self, event):
         """Gère la fermeture de la fenêtre pour arrêter le thread proprement."""
@@ -360,6 +388,173 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.thread.terminate() # Forcer l'arrêt si le thread ne répond pas
             self.console.append("<span style='color: orange;'>Le thread a dû être terminé de force.</span>")
         event.accept() # Accepter l'événement de fermeture de la fenêtre
+
+
+        
+    def resdonnees(self):
+        self.Temps, self.Tension, self.Current=[],[],[]
+        
+        
+        
+        
+    @pyqtSlot(list)
+    def add_mesures_to_table(self, data_row_from_worker):
+        """
+        Reçoit une liste de données du worker et l'ajoute au QTableWidget.
+        Ajoute un timestamp dans le thread de l'UI.
+        """
+
+        # Construisez la ligne complète pour le tableau (timestamp + données du worker)
+
+        row_position = self.mesuresTable.rowCount()
+        self.mesuresTable.insertRow(row_position) # Insère une nouvelle ligne à la fin
+
+        
+        self.mesuresTable.scrollToBottom() # Fait défiler le tableau vers le bas
+
+    @pyqtSlot(list) 
+    def tableau(self, data_row_from_worker):   #il recupere les données du calculs de _read_mesure pour y afficher dans le tableau //// Plusieurs maniere d'y écrire
+        # Récuperation des tableaux :
+            self.Temps = data_row_from_worker[0]
+            self.Tension = data_row_from_worker[1]
+            self.Current= data_row_from_worker[2]
+
+            
+        # Affichage de la courbe
+            self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
+            self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
+            self.TabTension.show()
+            row = self.Donnees.rowCount()
+            if self.row >= row:
+                self.Donnees.insertRow(row)
+            self.Donnees.setItem(self.row,self.col,
+                                  QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
+            self.Donnees.setItem(self.row,self.col+1,
+                                  QTableWidgetItem("{:.2f}".format(self.Tension[-1])))
+            self.Donnees.setItem(self.row,self.col+2,
+                                  QTableWidgetItem("{:.2f}".format(self.Current[-1])))
+            self.row += 1     
+            
+            self.Donnees.scrollToBottom()
+
+    def TimerStartMesure(self):
+        if self.btnCommencer.text() != "Pause":
+            if self.btnCommencer.text() == "Commencer l'enregistrement":
+                self.start_read_mesures_request.emit()
+                self.btnCommencer.setText('Pause')
+                self.btnReini.setEnabled(True)
+                self.btnEnregistrer.setEnabled(True)
+                self.btnReiniGra.setEnabled(True)
+
+                        # Réinitialistaion des listes de données
+                self.resdonnees() 
+                self.col += 3
+                self.row = 0        
+                #Création de nouvelles colonnes de données
+                self.Donnees.insertColumn(self.col)
+                self.Donnees.insertColumn(self.col + 1)
+                self.Donnees.insertColumn(self.col + 2)
+                # Définition des entêtes de colonnes
+                self.colonne_Labels.append('Temps (s)')
+                self.colonne_Labels.append('Tension (V)')
+                self.colonne_Labels.append('Courant (A)')
+                self.Donnees.setHorizontalHeaderLabels(self.colonne_Labels)     
+                # boucle d'incrémentation des couleurs des courbes
+                if self.color < len(self.tab_couleur)-1:
+                    self.color += 1
+                else :
+                    self.color = 0
+                    # Démarrage du timer d'acquisition
+                self.timerMesure.start(self.spinBox.value())
+                if(self.checkBoxSimu.isChecked()):
+                    self.spinBox(self.info_spinBox.emit.value())                      
+                else:
+                    self.spinBox(self.info_spinBox.emit.value())                      
+                
+            elif self.btnCommencer.text() == "Continuer":
+                self.btnCommencer.setText('Pause')
+                self.timerMesure.start(self.spinBox.value())
+            
+        elif self.btnCommencer.text() == "Pause":
+            self.stop_mesure_timer_request.emit()
+            self.btnCommencer.setText('Continuer')    
+
+
+    def reiniTab(self):
+        self.btnCommencer.setText("Commencer l'enregistrement")
+        self.resdonnees()
+        while self.Donnees.rowCount() > 0:
+            self.Donnees.removeRow(0)
+        while self.Donnees.columnCount() > 0:
+            self.Donnees.removeColumn(0)            
+        self.col = -3
+        self.row = 0
+        self.btnReini.setEnabled(False)
+        self.btnEnregistrer.setEnabled(False)
+        
+    def reiniGraphique(self):
+        self.TabTension=[]
+        self.btnReiniGra.setEnabled(False)
+ 
+    def enregTab(self):
+        """
+        Pour choisir un dossier d'enregistrement
+        dir_name = QFileDialog.getExistingDirectory()
+        print(dir_name)
+        """
+        file_name = "data" + QDateTime.currentDateTime().toString("_yyyy-MM-dd_hh.mm.ss")
+        file_name, Type = QFileDialog.getSaveFileName(
+            self, 'Save data', file_name,
+            'Text file (*.txt);;CSV file (*.csv);;All files()')
+        # if(file_name == ""):             je n'utilise pas de tableau de retour 
+        #     self.Data.appendHtml(
+        #         "<b style='color:red'>Enregistrement annulé</b>")
+        #     return            
+        with open(file_name, "w") as file:
+            # zip permet d'extraire 2 valeurs de 2 listes
+            for x, y, z in zip(self.Temps, self.Tension, self.Current):
+                file.write("{} {}\n".format(x, y))
+        path = pathlib.Path(file_name)
+        self.Data.appendHtml(path.name +
+                      ' : Enregistrement de {} points fait\n'.format(
+                          len(self.Temps)))
+        
+        selected = self.Donnees.selectedRanges()
+        if len(selected) > 0:
+            texte = ""
+            ligne = ""
+            with open(file_name+"Selected.txt", "w") as file:
+                for i in range(selected[0].topRow(), selected[0].bottomRow() + 1):
+                    for j in range(selected[0].leftColumn(), selected[0].rightColumn() + 1):
+                        if self.Donnees.item(i, j) != None:
+                            texte += self.Donnees.item(i, j).text() + "\t"
+                            ligne += self.Donnees.item(i, j).text() + "\t"
+                        else:
+                            # Sur les colonnes de temps, on ajoute le temps
+                            if j%2==0:
+                                texte += str(i*(float(self.Donnees.item(1, j).text())-float(self.Donnees.item(0, j).text())))+"\t"
+                                ligne += str(i*(float(self.Donnees.item(1, j).text())-float(self.Donnees.item(0, j).text())))+"\t"
+                            else:
+                                texte += "0\t"
+                                ligne += "0\t"
+                                
+                    texte = texte[:-1] + "\n"  # le [:-1] élimine le '\t' en trop
+                    file.write(ligne[:-1] + "\n")
+                    ligne = ""
+                QApplication.clipboard().setText(texte)
+
+
+        
+    def ChangeMode(self, checkState):
+        info_spinbox = (checkState == Qt.Checked)
+        if info_spinbox:
+            self.spinBox.setMinimum(10)
+        else:
+            self.spinBox.setMinimum(500)
+        # Informer le worker du changement de modepour le timer de mesure
+        if self.serial_worker._mesure_timer.isActive():
+            self.start_mesure_timer_request.emit(self.spinBox.value(), info_spinbox)
+            
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -278,15 +278,6 @@ class Ui_MainWindow(object):
         self.btn_idn = QtWidgets.QPushButton(self.centralwidget)
         self.btn_idn.setGeometry(QtCore.QRect(430, 810, 75, 23))
         self.btn_idn.setObjectName("btn_idn")
-        self.lcdNumber = QtWidgets.QLCDNumber(self.centralwidget)
-        self.lcdNumber.setGeometry(QtCore.QRect(110, 590, 111, 61))
-        self.lcdNumber.setObjectName("lcdNumber")
-        self.doubleSpinBox = QtWidgets.QDoubleSpinBox(self.centralwidget)
-        self.doubleSpinBox.setGeometry(QtCore.QRect(280, 600, 101, 51))
-        self.doubleSpinBox.setObjectName("doubleSpinBox")
-        self.dial = QtWidgets.QDial(self.centralwidget)
-        self.dial.setGeometry(QtCore.QRect(110, 670, 50, 64))
-        self.dial.setObjectName("dial")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1682, 21))
@@ -355,8 +346,6 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         self.spinVoltage.valueChanged['double'].connect(self.nbVoltage.display) # type: ignore
         self.spinAmpere.valueChanged['double'].connect(self.nbAmpere.display) # type: ignore
-        self.doubleSpinBox.valueChanged['double'].connect(self.lcdNumber.display) # type: ignore
-        self.dial.valueChanged['int'].connect(self.doubleSpinBox.selectAll) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
