@@ -26,7 +26,7 @@ class PyLedLabel(QLabel):
     _gdnA = f"color: green;border-width: 2px ;border-radius: {_SIZE/2};background-color: qlineargradient(spread:pad, x1:0.145, y1:0.16, x2:0.92, y2:0.988636, stop:0 rgba(0, 0, 0, 0), stop:0.869347 rgba(255, 255,255, 255));"
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
-        self.setText("")
+        self.setTextLed()
         self.setFixedSize(self._SIZE, self._SIZE)
         # Définit l'état par défaut sur StateOkBlue
         self.setState(self.StateOkBlue)
@@ -62,3 +62,5 @@ class PyLedLabel(QLabel):
         """
         self.setState(self.StateOk if state else self.StateError)
     
+    def setTextLed(self):
+        self.setText("")

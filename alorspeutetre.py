@@ -180,19 +180,17 @@ class SerialWorker(QObject):
         self.send_command(f"VSET1:{voltage}")
 
     def get_voltage(self):
-        """Demande la tension de sortie actuelle et renvoie la valeur."""
-        response = self.query("VOUT1?")
-        try:
-            # Exemple de parsing: cherche la valeur numérique après 'VOUT1:'
-            if "VOUT1:" in response:
-                voltage = float(response.split("VOUT1:")[-1].strip())
-                return voltage
-            else:
-                self.error_occurred.emit(f"Format de réponse VOUT1 inattendu: '{response}'")
-                return float('nan') # Not a Number
-        except ValueError:
-            self.error_occurred.emit(f"Impossible de parser la tension de: '{response}'")
-            return float('nan')
+        #Demande la tension de sortie actuelle et renvoie la valeur.
+        # try:
+        responsev = float(self.query("VOUT1?"))
+        return responsev
+        # except ValueError:
+        #     self.error_occurred.emit(f"Format de réponse inattendu: '{responsev}'")
+        #     return float('nan') # Not a Number
+        # except Exception as a:
+        #     self.error_occurred.emit(f"Impossible de parser la tension de: '{responsev}'")
+        #     return float('nan')
+
 
     def set_ampere(self, ampere):
         """Définit la tension de sortie de l'alimentation."""
@@ -200,19 +198,16 @@ class SerialWorker(QObject):
         self.send_command(f"ISET1:{ampere}")
 
     def get_current(self):
-        """Demande le courant de sortie actuel et renvoie la valeur."""
-        response = self.query("IOUT1?")
-        try:
-            # Exemple de parsing: cherche la valeur numérique après 'IOUT1:'
-            if "IOUT1:" in response:
-                current = float(response.split("IOUT1:")[-1].strip())
-                return current
-            else:
-                self.error_occurred.emit(f"Format de réponse IOUT1 inattendu: '{response}'")
-                return float('nan')
-        except ValueError:
-            self.error_occurred.emit(f"Impossible de parser le courant de: '{response}'")
-            return float('nan')
+        #Demande le courant de sortie actuel et renvoie la valeur.
+        # try:
+        responsec = float(self.query('IOUT1?'))
+        return responsec
+        # except ValueError:
+        #         self.error_occurred.emit(f"Format de réponse inattendu: '{responsec}'")
+        #         return float('nan')
+        # except Exception as a:
+        #     self.error_occurred.emit(f"Impossible de parser le courant de: '{responsec}'")
+        #     return float('nan')
 
     def set_output(self, state):
         """Active (1) ou désactive (0) la sortie de l'alimentation."""
@@ -226,7 +221,6 @@ class SerialWorker(QObject):
         
         TensionValue = self.get_voltage() # Appelle votre méthode get_voltage qui utilise query
         CurrentValue = self.get_current() # Appelle votre méthode get_current qui utilise query
-        #timestamp = mettre un deuxieme timer pour les mesures
         
         self.table_mesures_ready.emit([TensionValue, CurrentValue])
         
