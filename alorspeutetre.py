@@ -133,7 +133,7 @@ class SerialWorker(QObject):
 
     # --- Méthode principale de requête ---
     @pyqtSlot(str, int, result=str)
-    def query(self, command_string, timeout_ms=2000): # Augmenté le timeout par défaut
+    def query(self, command_string, timeout_ms=1000): # Augmenté le timeout par défaut
         """
         Envoie une commande à l'appareil et attend une réponse.
         Bloque le thread du SerialWorker pendant l'attente (pas l'UI).
@@ -194,6 +194,11 @@ class SerialWorker(QObject):
             self.error_occurred.emit(f"Impossible de parser la tension de: '{response}'")
             return float('nan')
 
+    def set_ampere(self, ampere):
+        """Définit la tension de sortie de l'alimentation."""
+        # Pas besoin de query ici car pas de réponse attendue immédiatement
+        self.send_command(f"ISET1:{ampere}")
+
     def get_current(self):
         """Demande le courant de sortie actuel et renvoie la valeur."""
         response = self.query("IOUT1?")
@@ -212,7 +217,8 @@ class SerialWorker(QObject):
     def set_output(self, state):
         """Active (1) ou désactive (0) la sortie de l'alimentation."""
         self.send_command(f"OUT{int(state)}")
-
+        
+    @pyqtSlot()
     def _read_mesures(self):
         if not self._is_open:
             self.error_occurred.emit("Port non ouvert pour la lecture des données.")
@@ -260,7 +266,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Appelle directement la méthode du worker
         self.spinVoltage.valueChanged.connect(self.worker.set_voltage)
-        
+        self.spinAmpere.valueChanged.connect(self.worker.set_ampere)
+
 
         
     
@@ -298,7 +305,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.Current=[]
         
         self.timerMesure = QTimer()
-        self.timerMesure.timeout.connect(self.read_Data_Mesure)
+
         
         
         # Indice de couleur pour les courbes
@@ -402,30 +409,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
     def TimerStop(self):
         self.timerMesure.stop()
-        
-        
-    @pyqtSlot(list) 
+        # IMPORTANT : Déconnectez le signal pour éviter des connexions multiples
+        try:
+            self.timerMesure.timeout.disconnect(self.start_read_mesures_request.emit)
+        except TypeError:
+            # Ignore l'erreur si le signal n'était pas connecté
+            pass
+    
+            
+ 
     def tableau(self, data_row_from_worker):   
         # Génération de l'axe X 
-        if len(self.Temps) > 0 and self.row > 0:
-            # Si le point 0 existe, on créé le nouveau point en ajoutant le
-            # point précédent à la valeur de la vitesse d'acquisition
-            self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
+        # if len(self.Temps) > 0 and self.row > 0:
+        #     # Si le point 0 existe, on créé le nouveau point en ajoutant le
+        #     # point précédent à la valeur de la vitesse d'acquisition
+        #     self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
+        acquisition_interval_s = self.spinBox.value() / 1000.0
+        if len(self.Temps) > 0:
+            self.Temps.append(self.Temps[-1] + acquisition_interval_s)
         else:
             self.Temps.append(0)
+            
         
         # Si on est en mode simu, on ajoute des points aléatoires
         if(self.checkBoxSimu.isChecked()):
-            self.Tension.append(random.uniform(0, 2) + 29)
-            self.Current.append(random.uniform(0, 2) + 4)
+            self.TensionValue = (random.uniform(0, 2) + 29)
+            self.CurrentValue = (random.uniform(0, 2) + 4)
         
         else:                     
         # Récuperation des tableaux :            
             self.TensionValue, self.CurrentValue = data_row_from_worker
- 
-        self.graph_time_value = self.timerMesure
         
-        self.Temps.append(self.graph_time_value)
         self.Tension.append(self.TensionValue)
         self.Current.append(self.CurrentValue)
             
@@ -437,8 +451,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #if self.row >= row:
         #    self.Donnees.insertRow(row)
         self.Donnees.insertRow(row)
-        self.Donnees.setItem(self.row,self.col,
-                              QTableWidgetItem("{:.2f}".format(self.TempsValue)))
+        self.Donnees.setItem(row, self.col, 
+                             QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
         self.Donnees.setItem(self.row,self.col+1,
                               QTableWidgetItem("{:.2f}".format(self.TensionValue)))
         self.Donnees.setItem(self.row,self.col+2,
@@ -450,7 +464,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def TimerStartMesure(self):
         if self.btnCommencer.text() != "Pause":
             if self.btnCommencer.text() == "Commencer l'enregistrement":
-                self.start_read_mesures_request.emit()
                 self.btnCommencer.setText('Pause')
                 self.btnReini.setEnabled(True)
                 self.btnEnregistrer.setEnabled(True)
@@ -474,19 +487,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.color += 1
                 else :
                     self.color = 0
-                    # Démarrage du timer d'acquisition
+                
+                # Démarrage du timer d'acquisition
+                self.timerMesure.timeout.connect(self.start_read_mesures_request.emit) 
                 self.timerMesure.start(self.spinBox.value())
-                if(self.checkBoxSimu.isChecked()):
-                    self.spinBox(self.info_spinBox.emit.value())                      
-                else:
-                    self.spinBox(self.info_spinBox.emit.value())                      
+                # if(self.checkBoxSimu.isChecked()):
+                #     self.spinBox.value()                
+                # else:
+                #     self.spinBox.value()                   
                 
             elif self.btnCommencer.text() == "Continuer":
                 self.btnCommencer.setText('Pause')
+                self.timerMesure.timeout.connect(self.start_read_mesures_request.emit)
                 self.timerMesure.start(self.spinBox.value())
             
         elif self.btnCommencer.text() == "Pause":
-            self.stop_mesure_timer_request.emit()
+            self.TimerStop()
             self.btnCommencer.setText('Continuer')    
 
 
