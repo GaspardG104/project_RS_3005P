@@ -54,7 +54,6 @@ class SerialWorker(QObject):
         self._query_timeout_timer = QTimer(self)
         self._query_timeout_timer.setSingleShot(True)
         self._query_timeout_timer.timeout.connect(self._on_query_timeout)
-        self.query("IOUT1?")
     @pyqtSlot(str, int)
     def open_port(self, port_name, baud_rate):
         """Ouvre le port série avec les paramètres spécifiés."""
@@ -71,6 +70,7 @@ class SerialWorker(QObject):
         if self._serial_port.open(QIODevice.ReadWrite):
             self._is_open = True
             self.port_status.emit(True, f"Port '{port_name}' ouvert à {baud_rate} bauds.")
+            
             
         else:
             self._is_open = False
@@ -134,7 +134,7 @@ class SerialWorker(QObject):
 
     # --- Méthode principale de requête ---
     @pyqtSlot(str, int, result=str)
-    def query(self, command_string, timeout_ms=1000): # Augmenté le timeout par défaut
+    def query(self, command_string, timeout_ms = 1000): # Augmenté le timeout par défaut
         """
         Envoie une commande à l'appareil et attend une réponse.
         Bloque le thread du SerialWorker pendant l'attente (pas l'UI).
@@ -162,7 +162,9 @@ class SerialWorker(QObject):
         self._query_event_loop = None # Libère la référence à la boucle
 
         return self._query_data_buffer # Retourne ce qui a été stocké dans le buffer
-
+        self._query_waiting_for_response = False # <--- Pour la sécurité au cas où 
+        
+        
     # --- Méthodes publiques pour envoyer des commandes (appelées depuis l'UI) ---
     # Ces méthodes utilisent maintenant la fonction query si elles attendent une réponse.
     # Elles sont désormais appelées depuis la MainWindow via self.worker.methode()
@@ -181,15 +183,15 @@ class SerialWorker(QObject):
         self.send_command(f"VSET1:{voltage}")
 
     def get_voltage(self):
-        #Demande la tension de sortie actuelle et renvoie la valeur.
+        # Demande la tension de sortie actuelle et renvoie la valeur.
         # try:
         responsev = float(self.query("VOUT1?"))
         return responsev
         # except ValueError:
-        #     self.error_occurred.emit(f"Format de réponse inattendu: '{responsev}'")
+        #     self.error_occurred.emit(f"Format de réponse inattendu: "{responsev})
         #     return float('nan') # Not a Number
-        # except Exception as a:
-        #     self.error_occurred.emit(f"Impossible de parser la tension de: '{responsev}'")
+        # except Exception as e:
+        #     self.error_occurred.emit(f"Impossible de parser la tension de: "{'responsev'})
         #     return float('nan')
 
 
@@ -210,9 +212,13 @@ class SerialWorker(QObject):
         #     self.error_occurred.emit(f"Impossible de parser le courant de: '{responsec}'")
         #     return float('nan')
 
-    def set_output(self, state):
+    def _set_output(self, state):
         """Active (1) ou désactive (0) la sortie de l'alimentation."""
         self.send_command(f"OUT{int(state)}")
+        
+    def _set_ocp(self, state):
+        # si ocp acitf = 1 ou inactif = 0
+        self.send_command(f"OCP{int(state)}")
         
     @pyqtSlot()
     def _read_mesures(self):
@@ -225,7 +231,11 @@ class SerialWorker(QObject):
         
         self.table_mesures_ready.emit([TensionValue, CurrentValue])
         
-        
+    
+    
+    def _set_lock(self, state):
+        # si ocp acitf = 1 ou inactif = 0
+        self.send_command(f"LOCK{int(state)}")
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     """
@@ -236,6 +246,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     open_port_signal = pyqtSignal(str, int)
     close_port_signal = pyqtSignal()
     start_read_mesures_request = pyqtSignal()
+
     #pour le timer :
     start_timer_read_signal = pyqtSignal(int) # int = intervalle en ms
     stop_timer_read_signal = pyqtSignal()
@@ -249,6 +260,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker = SerialWorker()
         self.worker.moveToThread(self.thread) # IMPORTANT: Déplace le worker vers le nouveau thread
 
+        
+
         self.console.setReadOnly(True)
 
         self.entreeCommande.setPlaceholderText("Entrez une commande SCPI (ex: VSET1:5)")
@@ -258,37 +271,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnOff.clicked.connect(self.stop_connection)
         self.btnCommencer.clicked.connect(self.TimerStartMesure)
         self.btn_idn.clicked.connect(self._on_request_idn_clicked)
-
+        self.buttonOCP.clicked.connect(self.OCP_mode)
+        self.buttonLOCK.clicked.connect(self.LOCK_mode)
+        self.indiceOut.clicked.connect(self.Output_mode)
+        
+        self.ChangeSingleStepVoltage.valueChanged.connect(self.spinVoltage.setSingleStep)
+        self.ChangeSingleStepAmpere.valueChanged.connect(self.spinAmpere.setSingleStep)
+        
         # Appelle directement la méthode du worker
         self.spinVoltage.valueChanged.connect(self.worker.set_voltage)
         self.spinAmpere.valueChanged.connect(self.worker.set_ampere)
+        
+        #self.pasMesures.valueChanged.connect(self.worker.query( JE SAIS PAS QUOI METTRE PCK CA CHANGE AUSSI LE TEMPS DES AUTRES QUERYS AUTRE QUE LES MESURES))
 
+        # Bouton UI, pas besoin du Worker Thread
         self.btnReiniGra.clicked.connect(self.reiniGraphique)
         self.btnReini.clicked.connect(self.reiniTab)
         self.btnEnregistrer.clicked.connect(self.enregTab)
-        # self.btn_get_voltage = QPushButton("Obtenir Tension Actuelle")
-        # # Connecte à une nouvelle méthode dans MainWindow pour gérer la réponse
-        # self.btn_get_voltage.clicked.connect(self._on_get_voltage_clicked)
-        # self.btn_get_voltage.setEnabled(False)
-        # btn_layout.addWidget(self.btn_get_voltage)
 
-        # self.btn_get_current = QPushButton("Obtenir Courant Actuel")
-        # # Connecte à une nouvelle méthode dans MainWindow pour gérer la réponse
-        # self.btn_get_current.clicked.connect(self._on_get_current_clicked)
-        # self.btn_get_current.setEnabled(False)
-        # btn_layout.addWidget(self.btn_get_current)
-
-        # self.btn_output_on = QPushButton("Sortie ON")
-        # # Appelle directement la méthode du worker
-        # self.btn_output_on.clicked.connect(lambda: self.worker.set_output(1))
-        # self.btn_output_on.setEnabled(False)
-        # btn_layout.addWidget(self.btn_output_on)
-
-        # self.btn_output_off = QPushButton("Sortie OFF")
-        # # Appelle directement la méthode du worker
-        # self.btn_output_off.clicked.connect(lambda: self.worker.set_output(0))
-        # self.btn_output_off.setEnabled(False)
-        # btn_layout.addWidget(self.btn_output_off)
 
         # layout.addLayout(btn_layout)
         
@@ -330,6 +330,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.open_port_signal.connect(self.worker.open_port)
         self.close_port_signal.connect(self.worker.close_port)
         self.start_read_mesures_request.connect(self.worker._read_mesures)
+#        self.change_spinbox_value_request.connect(self.worker.query)
         #timer : 
         # self.start_timer_read_signal.connect(self.worker._data_read_timer.start) # Nécessite que le timer soit dans le worker
         # self.stop_timer_read_signal.connect(self.worker._data_read_timer.stop)
@@ -341,12 +342,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Démarre le thread (le worker ne fera rien tant qu'il n'est pas appelé via ses slots)
         self.thread.start()
         self.console.append("Application démarrée. Thread worker actif.")
+        
+       
+        self.start_connection() #Je lance automatiquement à l'init la connexion par ce que jtrouve ca nul
 
     def start_connection(self):
         """Demande au worker d'ouvrir le port."""
         self.open_port_signal.emit("COM3", 9600) # Adaptez le port et baud rate
         self.console.append("Statut: Connexion en cours...")
-
+        self.OCP_mode()
+        self.Output_mode()
+        self.LOCK_mode()
 
 
     def stop_connection(self):
@@ -386,20 +392,36 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.console.append("<span style='color: orange;'>Aucune réponse IDN ou timeout.</span>")
         else:
             self.log_error("Port non ouvert pour demander l'IDN.")
-
-
-    def closeEvent(self, event):
-        """Gère la fermeture de la fenêtre pour arrêter le thread proprement."""
-        self.stop_connection() # Demande au worker de fermer le port
-        self.thread.quit()     # Demande au thread de quitter sa boucle d'événements
-        self.thread.wait(3000) # Attendre que le thread se termine (max 3 secondes)
-        if self.thread.isRunning():
-            self.thread.terminate() # Forcer l'arrêt si le thread ne répond pas
-            self.console.append("<span style='color: orange;'>Le thread a dû être terminé de force.</span>")
-        event.accept() # Accepter l'événement de fermeture de la fenêtre
-
-
-        
+    
+    @pyqtSlot(bool)
+    def OCP_mode(self):
+        if self.buttonOCP.isChecked():
+            self.worker._set_ocp(1)
+            self.led_ocp.setState(0)
+        else:
+            self.worker._set_ocp(0)
+            self.led_ocp.setState(2)
+            
+    @pyqtSlot(bool)
+    def LOCK_mode(self):
+        if self.buttonLOCK.isChecked():
+            self.worker._set_lock(1)
+            self.led_lock.setState(0)
+        else:
+            self.worker._set_lock(0)
+            self.led_lock.setState(2)
+            
+            
+    @pyqtSlot(bool)
+    def Output_mode(self):
+        if self.indiceOut.isChecked():
+            self.worker._set_output(1)
+            self.led_pn.setState(0)
+        else:
+            self.worker._set_output(0)
+            self.led_pn.setState(2)
+            
+     
     def resdonnees(self):
         self.Temps, self.Tension, self.Current=[],[],[]
         
@@ -411,7 +433,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         except TypeError:
             # Ignore l'erreur si le signal n'était pas connecté
             pass
-    
+
             
  
     def tableau(self, data_row_from_worker):   
@@ -458,7 +480,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.Donnees.scrollToBottom()
 
     def TimerStartMesure(self):
-        
         if self.btnCommencer.text() != "Pause":
             if self.btnCommencer.text() == "Commencer l'enregistrement":
                 self.console.append("Début de l'enregistrement des mesures")
@@ -528,84 +549,46 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         dir_name = QFileDialog.getExistingDirectory()
         print(dir_name)
         """
-        file_name = "data" + QDateTime.currentDateTime().toString("_yyyy-MM-dd_hh.mm.ss")
-        file_name, Type = QFileDialog.getSaveFileName(
-            self, 'Save data', file_name,
-            'Text file (*.txt);;CSV file (*.csv);;All files()')
-        # if(file_name == ""):             je n'utilise pas de tableau de retour 
-        #     self.Data.appendHtml(
-        #         "<b style='color:red'>Enregistrement annulé</b>")
-        #     return
-            
-        with open(file_name, "w") as file:
-            # zip permet d'extraire 2 valeurs de 2 listes
-            for x, y, z in zip(self.Temps, self.Tension, self.Current):
-                file.write("{} {} {}\n".format(x, y, z))
-        path = pathlib.Path(file_name)
-        self.Data.appendHtml(path.name +
-                      ' : Enregistrement de {} points fait\n'.format(
-                          len(self.Temps)))
-        
-        
-        if not file_name:
-            self.Data.appendHtml("<b style='color:red'>Enregistrement annulé</b><br>")
-            return
-        
+        # Génère un nom de fichier par défaut avec la date et l'heure actuelles
+        default_file_name = "data_" + QDateTime.currentDateTime().toString("yyyy-MM-dd_hh.mm.ss")
 
-        # selected = self.Donnees.selectedRanges()
-        # if len(selected) > 0:
-        #     texte = "","",""
-        #     ligne = ""
-        #     with open(file_name+"Selected.txt", "w") as file:
-        #         for i in range(selected[0].topRow(), selected[0].bottomRow() + 1):
-        #             for j in range(selected[0].leftColumn(), selected[0].rightColumn() + 1):
-        #                 if self.Donnees.item(i, j) != None:
-        #                     texte += self.Donnees.item(i, j).text() + "\t"
-        #                     ligne += self.Donnees.item(i, j).text() + "\t"
-        #                 else:
-        #                     # Sur les colonnes de temps, on ajoute le temps
-        #                     if j%2==0:
-        #                         texte += str(i*(float(self.Donnees.item(1, j).text())-float(self.Donnees.item(0, j).text())))+"\t"
-        #                         ligne += str(i*(float(self.Donnees.item(1, j).text())-float(self.Donnees.item(0, j).text())))+"\t"
-        #                     else:
-        #                         texte += "0\t"
-        #                         ligne += "0\t"
-                                
-        #             texte = texte[:-1] + "\n"  # le [:-1] élimine le '\t' en trop
-        #             file.write(ligne[:-1] + "\n")
-        #             ligne = ""
-        #         QApplication.clipboard().setText(texte)
+       # Ouvre la boîte de dialogue d'enregistrement de fichier
+       # Propose des filtres pour les fichiers texte et CSV
+        file_path, selected_filter = QFileDialog.getSaveFileName(
+           self, 'Sauvegarder les données', default_file_name,
+           'Fichier CSV (*.csv);;Fichier texte (*.txt);;Tous les fichiers (*)')
 
+       # Si l'utilisateur annule la boîte de dialogue (aucune sélection de chemin)
+        if not file_path:
+           self.Data.appendHtml("<b style='color:red'>Enregistrement annulé</b><br>")
+           return
 
-
-
-
-        # Détermine le séparateur en fonction du filtre sélectionné ou de l'extension du fichier
-        # Le séparateur par défaut est la virgule pour CSV, l'espace pour TXT
+       # Détermine le séparateur en fonction du filtre sélectionné ou de l'extension du fichier
+       # Le séparateur par défaut est la virgule pour CSV, l'espace pour TXT
         separator = "," if selected_filter == 'Fichier CSV (*.csv)' or file_path.lower().endswith('.csv') else " "
 
-        # --- Partie 1 : Enregistrement des listes self.Temps, self.Tension, self.Current ---
+       # --- Partie 1 : Enregistrement des listes self.Temps, self.Tension, self.Current ---
         try:
             with open(file_path, "w") as file:
-                # Écrit les en-têtes de colonnes
+               # Écrit les en-têtes de colonnes
                 if separator == ",":
-                    file.write("Temps,Tension,Courant\n")
+                   file.write("Temps,Tension,Courant\n")
                 else:
-                    file.write("Temps Tension Courant\n")
+                   file.write("Temps Tension Courant\n")
 
-                # Écrit chaque ligne de données
+               # Écrit chaque ligne de données
                 for x, y, z in zip(self.Temps, self.Tension, self.Current):
-                    file.write(f"{x}{separator}{y}{separator}{z}\n")
+                   file.write(f"{x}{separator}{y}{separator}{z}\n")
 
-            # Affiche un message de succès dans le widget self.Data
+           # Affiche un message de succès dans le widget self.Data
             path_obj = pathlib.Path(file_path)
             self.Data.appendHtml(f"<b style='color:green'>{path_obj.name}</b> : Enregistrement de {len(self.Temps)} points fait.<br>")
 
         except Exception as e:
-            # Affiche un message d'erreur si l'enregistrement échoue
-            self.Data.appendHtml(f"<b style='color:red'>Erreur lors de l'enregistrement des données principales : {e}</b><br>")
-            return # Arrête la fonction si l'enregistrement principal échoue
-        
+           # Affiche un message d'erreur si l'enregistrement échoue
+           self.Data.appendHtml(f"<b style='color:red'>Erreur lors de l'enregistrement des données principales : {e}</b><br>")
+           return # Arrête la fonction si l'enregistrement principal échoue
+
     def ChangeMode(self, checkState):
         info_spinbox = (checkState == Qt.Checked)
         if info_spinbox:
@@ -616,6 +599,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.serial_worker._mesure_timer.isActive():
             self.start_mesure_timer_request.emit(self.spinBox.value(), info_spinbox)
             
+            
+    def closeEvent(self, event):
+        """Gère la fermeture de la fenêtre pour arrêter le thread proprement."""
+        self.stop_connection() # Demande au worker de fermer le port
+        self.thread.quit()     # Demande au thread de quitter sa boucle d'événements
+        self.thread.wait(3000) # Attendre que le thread se termine (max 3 secondes)
+        if self.thread.isRunning():
+            self.thread.terminate() # Forcer l'arrêt si le thread ne répond pas
+            self.console.append("<span style='color: orange;'>Le thread a dû être terminé de force.</span>")
+        event.accept() # Accepter l'événement de fermeture de la fenêtre
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

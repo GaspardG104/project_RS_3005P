@@ -24,12 +24,15 @@ class PyLedLabel(QLabel):
     _redP = f"color: red;border-width: 2px ;border-radius: {_SIZE/2};background-color: qlineargradient(spread:pad, x1:0.145, y1:0.16, x2:0.92, y2:0.988636, stop:0 rgba(0, 0, 0, 0), stop:0.869347 rgba(255, 255,255, 255));"
     _blackN = f"color: black;border-width: 2px ;border-radius: {_SIZE/2};background-color: qlineargradient(spread:pad, x1:0.145, y1:0.16, x2:0.92, y2:0.988636, stop:0 rgba(0, 0, 0, 0), stop:0.869347 rgba(255, 255,255, 255));"
     _gdnA = f"color: green;border-width: 2px ;border-radius: {_SIZE/2};background-color: qlineargradient(spread:pad, x1:0.145, y1:0.16, x2:0.92, y2:0.988636, stop:0 rgba(0, 0, 0, 0), stop:0.869347 rgba(255, 255,255, 255));"
+    
+    
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
         self.setTextLed()
         self.setFixedSize(self._SIZE, self._SIZE)
         # Définit l'état par défaut sur StateOkBlue
         self.setState(self.StateOkBlue)
+
     @pyqtSlot(int)
     def setState(self, state: int):
         """
