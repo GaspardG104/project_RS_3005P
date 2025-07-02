@@ -71,6 +71,7 @@ class SerialWorker(QObject):
         if self._serial_port.open(QIODevice.ReadWrite):
             self._is_open = True
             self.port_status.emit(True, f"Port '{port_name}' ouvert à {baud_rate} bauds.")
+            
         else:
             self._is_open = False
             error_msg = self._serial_port.errorString()
@@ -262,9 +263,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.spinVoltage.valueChanged.connect(self.worker.set_voltage)
         self.spinAmpere.valueChanged.connect(self.worker.set_ampere)
 
-
-        
-    
+        self.btnReiniGra.clicked.connect(self.reiniGraphique)
+        self.btnReini.clicked.connect(self.reiniTab)
+        self.btnEnregistrer.clicked.connect(self.enregTab)
         # self.btn_get_voltage = QPushButton("Obtenir Tension Actuelle")
         # # Connecte à une nouvelle méthode dans MainWindow pour gérer la réponse
         # self.btn_get_voltage.clicked.connect(self._on_get_voltage_clicked)
@@ -345,6 +346,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """Demande au worker d'ouvrir le port."""
         self.open_port_signal.emit("COM3", 9600) # Adaptez le port et baud rate
         self.console.append("Statut: Connexion en cours...")
+
 
 
     def stop_connection(self):
@@ -456,8 +458,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.Donnees.scrollToBottom()
 
     def TimerStartMesure(self):
+        
         if self.btnCommencer.text() != "Pause":
             if self.btnCommencer.text() == "Commencer l'enregistrement":
+                self.console.append("Début de l'enregistrement des mesures")
                 self.btnCommencer.setText('Pause')
                 self.btnReini.setEnabled(True)
                 self.btnEnregistrer.setEnabled(True)
@@ -491,11 +495,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 #     self.spinBox.value()                   
                 
             elif self.btnCommencer.text() == "Continuer":
+                self.console.append("Reprise des mesures")
                 self.btnCommencer.setText('Pause')
                 self.timerMesure.timeout.connect(self.start_read_mesures_request.emit)
                 self.timerMesure.start(self.spinBox.value())
             
         elif self.btnCommencer.text() == "Pause":
+            self.console.append("Pause, les mesures sont stopées")
             self.TimerStop()
             self.btnCommencer.setText('Continuer')    
 
@@ -513,7 +519,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnEnregistrer.setEnabled(False)
         
     def reiniGraphique(self):
-        self.Temps, self.Tension, self.Current=[],[],[]
+        self.TabTension.clear()
         self.btnReiniGra.setEnabled(False)
  
     def enregTab(self):
@@ -529,41 +535,76 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # if(file_name == ""):             je n'utilise pas de tableau de retour 
         #     self.Data.appendHtml(
         #         "<b style='color:red'>Enregistrement annulé</b>")
-        #     return            
+        #     return
+            
         with open(file_name, "w") as file:
             # zip permet d'extraire 2 valeurs de 2 listes
             for x, y, z in zip(self.Temps, self.Tension, self.Current):
-                file.write("{} {}\n".format(x, y))
+                file.write("{} {} {}\n".format(x, y, z))
         path = pathlib.Path(file_name)
         self.Data.appendHtml(path.name +
                       ' : Enregistrement de {} points fait\n'.format(
                           len(self.Temps)))
         
-        selected = self.Donnees.selectedRanges()
-        if len(selected) > 0:
-            texte = ""
-            ligne = ""
-            with open(file_name+"Selected.txt", "w") as file:
-                for i in range(selected[0].topRow(), selected[0].bottomRow() + 1):
-                    for j in range(selected[0].leftColumn(), selected[0].rightColumn() + 1):
-                        if self.Donnees.item(i, j) != None:
-                            texte += self.Donnees.item(i, j).text() + "\t"
-                            ligne += self.Donnees.item(i, j).text() + "\t"
-                        else:
-                            # Sur les colonnes de temps, on ajoute le temps
-                            if j%2==0:
-                                texte += str(i*(float(self.Donnees.item(1, j).text())-float(self.Donnees.item(0, j).text())))+"\t"
-                                ligne += str(i*(float(self.Donnees.item(1, j).text())-float(self.Donnees.item(0, j).text())))+"\t"
-                            else:
-                                texte += "0\t"
-                                ligne += "0\t"
+        
+        if not file_name:
+            self.Data.appendHtml("<b style='color:red'>Enregistrement annulé</b><br>")
+            return
+        
+
+        # selected = self.Donnees.selectedRanges()
+        # if len(selected) > 0:
+        #     texte = "","",""
+        #     ligne = ""
+        #     with open(file_name+"Selected.txt", "w") as file:
+        #         for i in range(selected[0].topRow(), selected[0].bottomRow() + 1):
+        #             for j in range(selected[0].leftColumn(), selected[0].rightColumn() + 1):
+        #                 if self.Donnees.item(i, j) != None:
+        #                     texte += self.Donnees.item(i, j).text() + "\t"
+        #                     ligne += self.Donnees.item(i, j).text() + "\t"
+        #                 else:
+        #                     # Sur les colonnes de temps, on ajoute le temps
+        #                     if j%2==0:
+        #                         texte += str(i*(float(self.Donnees.item(1, j).text())-float(self.Donnees.item(0, j).text())))+"\t"
+        #                         ligne += str(i*(float(self.Donnees.item(1, j).text())-float(self.Donnees.item(0, j).text())))+"\t"
+        #                     else:
+        #                         texte += "0\t"
+        #                         ligne += "0\t"
                                 
-                    texte = texte[:-1] + "\n"  # le [:-1] élimine le '\t' en trop
-                    file.write(ligne[:-1] + "\n")
-                    ligne = ""
-                QApplication.clipboard().setText(texte)
+        #             texte = texte[:-1] + "\n"  # le [:-1] élimine le '\t' en trop
+        #             file.write(ligne[:-1] + "\n")
+        #             ligne = ""
+        #         QApplication.clipboard().setText(texte)
 
 
+
+
+
+        # Détermine le séparateur en fonction du filtre sélectionné ou de l'extension du fichier
+        # Le séparateur par défaut est la virgule pour CSV, l'espace pour TXT
+        separator = "," if selected_filter == 'Fichier CSV (*.csv)' or file_path.lower().endswith('.csv') else " "
+
+        # --- Partie 1 : Enregistrement des listes self.Temps, self.Tension, self.Current ---
+        try:
+            with open(file_path, "w") as file:
+                # Écrit les en-têtes de colonnes
+                if separator == ",":
+                    file.write("Temps,Tension,Courant\n")
+                else:
+                    file.write("Temps Tension Courant\n")
+
+                # Écrit chaque ligne de données
+                for x, y, z in zip(self.Temps, self.Tension, self.Current):
+                    file.write(f"{x}{separator}{y}{separator}{z}\n")
+
+            # Affiche un message de succès dans le widget self.Data
+            path_obj = pathlib.Path(file_path)
+            self.Data.appendHtml(f"<b style='color:green'>{path_obj.name}</b> : Enregistrement de {len(self.Temps)} points fait.<br>")
+
+        except Exception as e:
+            # Affiche un message d'erreur si l'enregistrement échoue
+            self.Data.appendHtml(f"<b style='color:red'>Erreur lors de l'enregistrement des données principales : {e}</b><br>")
+            return # Arrête la fonction si l'enregistrement principal échoue
         
     def ChangeMode(self, checkState):
         info_spinbox = (checkState == Qt.Checked)

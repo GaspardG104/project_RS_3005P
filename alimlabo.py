@@ -238,7 +238,7 @@ class Ui_MainWindow(object):
         self.btnReiniGra.setObjectName("btnReiniGra")
         self.indiceOut = QtWidgets.QPushButton(self.centralwidget)
         self.indiceOut.setEnabled(True)
-        self.indiceOut.setGeometry(QtCore.QRect(330, 740, 41, 41))
+        self.indiceOut.setGeometry(QtCore.QRect(330, 750, 41, 41))
         self.indiceOut.setMouseTracking(False)
         self.indiceOut.setText("")
         self.indiceOut.setIcon(icon)
