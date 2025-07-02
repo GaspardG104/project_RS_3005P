@@ -524,7 +524,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
  
     def enregTab(self):
         """
-        Pour choisir un dossier d'enregistrement
+        Pour choisir un dossier d'enregistrement   "test de commit"
         dir_name = QFileDialog.getExistingDirectory()
         print(dir_name)
         """
