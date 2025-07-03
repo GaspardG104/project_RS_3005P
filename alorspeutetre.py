@@ -19,6 +19,10 @@ from PyQt5.QtCore import QFileInfo, Qt, QDateTime, QThread, QObject, pyqtSignal,
 from PyQt5.QtGui import QIcon
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
 
+#Pour enregistrer le graphique mais chepa si jaurais pu faire le tracé des courbes avec ca directemment a voir 
+# import pyqtgraph as pg
+# import pyqtgraph.exporters
+
 import random
 import pathlib
 from math import log
@@ -40,6 +44,8 @@ class SerialWorker(QObject):
     _query_response_received = pyqtSignal(str)
     
     table_mesures_ready = pyqtSignal(list)
+    #signal pour change la valeurs de temps de latence de query
+    default_query_timeout_updated = pyqtSignal(int)
 
     def __init__(self):
         super().__init__()
@@ -54,6 +60,9 @@ class SerialWorker(QObject):
         self._query_timeout_timer = QTimer(self)
         self._query_timeout_timer.setSingleShot(True)
         self._query_timeout_timer.timeout.connect(self._on_query_timeout)
+        self._default_query_timeout_ms = 1000
+
+        
     @pyqtSlot(str, int)
     def open_port(self, port_name, baud_rate):
         """Ouvre le port série avec les paramètres spécifiés."""
@@ -134,20 +143,22 @@ class SerialWorker(QObject):
 
 
 
-    @pyqtSlot(int) # Le slot attend un entier (la valeur de la spinbox)
+    @pyqtSlot(int)
     def set_default_query_timeout(self, new_timeout_ms):
         if new_timeout_ms > 0: # S'assurer que le timeout est positif
             self._default_query_timeout_ms = new_timeout_ms
-            # Optionnel: loguer le changement
             self.data_received.emit(f"Timeout des requêtes défini à {new_timeout_ms} ms.")
+            self.default_query_timeout_updated.emit(new_timeout_ms) 
         else:
             self.error_occurred.emit("Le timeout des requêtes doit être une valeur positive.")
-        return self._default_query_timeout_ms
+        # PAS DE RETURN ICI ! Un pyqtSlot ne doit généralement pas retourner de valeur
+    
+        
     
     
     # --- Méthode principale de requête ---
     @pyqtSlot(str, int, result=str)
-    def query(self, command_string, timeout_ms): # Augmenté le timeout par défaut
+    def query(self, command_string, timeout_ms = -1): 
         """
         Envoie une commande à l'appareil et attend une réponse.
         Bloque le thread du SerialWorker pendant l'attente (pas l'UI).
@@ -159,7 +170,10 @@ class SerialWorker(QObject):
         if self._query_waiting_for_response:
             self.error_occurred.emit("Une autre requête est déjà en attente de réponse. Veuillez patienter.")
             return "" # Évite d'empiler les requêtes
-
+        
+        actual_timeout = self._default_query_timeout_ms
+        if timeout_ms != -1: # Si un timeout spécifique est fourni, on l'utilise à la place
+            actual_timeout = timeout_ms
             
         self._query_waiting_for_response = True
         self._query_data_buffer = "" # Réinitialise le buffer pour la nouvelle requête
@@ -169,21 +183,17 @@ class SerialWorker(QObject):
 
         # Crée et exécute une boucle d'événements pour attendre la réponse
         self._query_event_loop = QEventLoop()
-        self._query_timeout_timer.start(timeout_ms)
+        
+        self._query_timeout_timer.start(actual_timeout) 
+        
         self._query_event_loop.exec_() # Bloque le thread du worker ici
 
         # Nettoyage après la fin de la boucle (timeout ou réponse reçue)
         self._query_event_loop = None # Libère la référence à la boucle
         
-        
-        self._query_waiting_for_response = False # <--- Pour la sécurité au cas où 
+        self._query_waiting_for_response = False 
         return self._query_data_buffer # Retourne ce qui a été stocké dans le buffer
 
-        
-        
-    # --- Méthodes publiques pour envoyer des commandes (appelées depuis l'UI) ---
-    # Ces méthodes utilisent maintenant la fonction query si elles attendent une réponse.
-    # Elles sont désormais appelées depuis la MainWindow via self.worker.methode()
 
     def send_command(self, command_string):
         """Envoie une commande textuelle sans attendre de réponse immédiate."""
@@ -200,33 +210,37 @@ class SerialWorker(QObject):
 
     def get_voltage(self):
         # Demande la tension de sortie actuelle et renvoie la valeur.
-        # try:
         responsev = float(self.query("VOUT1?"))
         return responsev
-        # except ValueError:
-        #     self.error_occurred.emit(f"Format de réponse inattendu: "{responsev})
-        #     return float('nan') # Not a Number
-        # except Exception as e:
-        #     self.error_occurred.emit(f"Impossible de parser la tension de: "{'responsev'})
-        #     return float('nan')
-
+        try:
+            if "VOUT1:" in responsev: 
+                voltage = float(responsev.split("VOUT1:")[-1].strip())
+                return voltage
+            else:
+                self.error_occurred.emit(f"Format de réponse VOUT1 inattendu ou vide: '{responsev}'")
+                return float('nan')
+        except ValueError:
+            self.error_occurred.emit(f"Impossible de parser la tension de: '{responsev}'")
+            return float('nan')
 
     def set_ampere(self, ampere):
         """Définit la tension de sortie de l'alimentation."""
-        # Pas besoin de query ici car pas de réponse attendue immédiatement
         self.send_command(f"ISET1:{ampere}")
 
     def get_current(self):
         #Demande le courant de sortie actuel et renvoie la valeur.
-        # try:
         responsec = float(self.query('IOUT1?'))
         return responsec
-        # except ValueError:
-        #         self.error_occurred.emit(f"Format de réponse inattendu: '{responsec}'")
-        #         return float('nan')
-        # except Exception as a:
-        #     self.error_occurred.emit(f"Impossible de parser le courant de: '{responsec}'")
-        #     return float('nan')
+        try:
+            if "IOUT1:" in responsec:
+                current = float(responsec.split("IOUT1:")[-1].strip())
+                return current
+            else:
+                self.error_occurred.emit(f"Format de réponse IOUT1 inattendu ou vide: '{responsec}'")
+                return float('nan')
+        except ValueError:
+            self.error_occurred.emit(f"Impossible de parser le courant de: '{responsec}'")
+            return float('nan')
 
     def _set_output(self, state):
         """Active (1) ou désactive (0) la sortie de l'alimentation."""
@@ -242,8 +256,8 @@ class SerialWorker(QObject):
             self.error_occurred.emit("Port non ouvert pour la lecture des données.")
             return
         
-        TensionValue = self.get_voltage() # Appelle votre méthode get_voltage qui utilise query
-        CurrentValue = self.get_current() # Appelle votre méthode get_current qui utilise query
+        TensionValue = self.get_voltage() # Appelle méthode get_voltage qui utilise query
+        CurrentValue = self.get_current() # Appelle méthode get_current qui utilise query
         
         self.table_mesures_ready.emit([TensionValue, CurrentValue])
         
@@ -278,10 +292,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker = SerialWorker()
         self.worker.moveToThread(self.thread) # IMPORTANT: Déplace le worker vers le nouveau thread
 
+        # self.plot_widget = pg.PlotWidget()
         
-
+        
         self.console.setReadOnly(True)
-
         self.entreeCommande.setPlaceholderText("Entrez une commande SCPI (ex: VSET1:5)")
         self.entreeCommande.returnPressed.connect(self.send_custom_command)
 
@@ -292,6 +306,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.buttonOCP.clicked.connect(self.OCP_mode)
         self.buttonLOCK.clicked.connect(self.LOCK_mode)
         self.indiceOut.clicked.connect(self.Output_mode)
+       
         
         self.ChangeSingleStepVoltage.valueChanged.connect(self.spinVoltage.setSingleStep)
         self.ChangeSingleStepAmpere.valueChanged.connect(self.spinAmpere.setSingleStep)
@@ -305,8 +320,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Bouton UI, pas besoin du Worker Thread
         self.btnReiniGra.clicked.connect(self.reiniGraphique)
         self.btnReini.clicked.connect(self.reiniTab)
-        self.btnEnregistrer.clicked.connect(self.enregTab)
-
+        self.btnEnregistrer.clicked.connect(self.enregTab) #tableau des données
+#        self.btnEnregistrerGraph.clicked.connect(self.enregGraph) #enregistre graphe
+        self.btnReiniTout.clicked.connect(self.reiniAll)
 
         # layout.addLayout(btn_layout)
         
@@ -364,6 +380,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
        
         self.start_connection() #Je lance automatiquement à l'init la connexion par ce que jtrouve ca nul
+
+
+
 
     def start_connection(self):
         """Demande au worker d'ouvrir le port."""
@@ -513,6 +532,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.btnReini.setEnabled(True)
                 self.btnEnregistrer.setEnabled(True)
                 self.btnReiniGra.setEnabled(True)
+                self.btnReiniTout.setEnabled(True)
 
                 self.resdonnees()
                 self.col += 3
@@ -543,7 +563,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
     def reiniTab(self):
-        self.btnCommencer.setText("Commencer l'enregistrement")
         self.resdonnees()
         while self.Donnees.rowCount() > 0:
             self.Donnees.removeRow(0)
@@ -554,11 +573,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnReini.setEnabled(False)
         self.btnEnregistrer.setEnabled(False)
         
+        
     def reiniGraphique(self):
-
         self.TabTension.clear()
         self.btnReiniGra.setEnabled(False)
  
+    def reiniAll(self):
+        self.reiniTab()
+        self.reiniGraphique()
+        self.btnReiniGra.setEnabled(False)
+
+    
     def enregTab(self):
         """
         Pour choisir un dossier d'enregistrement   "test de commit"
@@ -604,6 +629,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
            # Affiche un message d'erreur si l'enregistrement échoue
            self.Data.appendHtml(f"<b style='color:red'>Erreur lors de l'enregistrement des données principales : {e}</b><br>")
            return # Arrête la fonction si l'enregistrement principal échoue
+       
+        
+
+#    def enregGraph(self):
+
+        
+                    
 
     def ChangeMode(self, checkState):
         info_spinbox = (checkState == Qt.Checked)
