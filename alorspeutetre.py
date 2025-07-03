@@ -132,9 +132,22 @@ class SerialWorker(QObject):
         self._query_waiting_for_response = False
         self._query_data_buffer = "" # Efface le buffer en cas de timeout
 
+
+
+    @pyqtSlot(int) # Le slot attend un entier (la valeur de la spinbox)
+    def set_default_query_timeout(self, new_timeout_ms):
+        if new_timeout_ms > 0: # S'assurer que le timeout est positif
+            self._default_query_timeout_ms = new_timeout_ms
+            # Optionnel: loguer le changement
+            self.data_received.emit(f"Timeout des requêtes défini à {new_timeout_ms} ms.")
+        else:
+            self.error_occurred.emit("Le timeout des requêtes doit être une valeur positive.")
+        return self._default_query_timeout_ms
+    
+    
     # --- Méthode principale de requête ---
     @pyqtSlot(str, int, result=str)
-    def query(self, command_string, timeout_ms = 1000): # Augmenté le timeout par défaut
+    def query(self, command_string, timeout_ms): # Augmenté le timeout par défaut
         """
         Envoie une commande à l'appareil et attend une réponse.
         Bloque le thread du SerialWorker pendant l'attente (pas l'UI).
@@ -147,6 +160,7 @@ class SerialWorker(QObject):
             self.error_occurred.emit("Une autre requête est déjà en attente de réponse. Veuillez patienter.")
             return "" # Évite d'empiler les requêtes
 
+            
         self._query_waiting_for_response = True
         self._query_data_buffer = "" # Réinitialise le buffer pour la nouvelle requête
 
@@ -160,9 +174,11 @@ class SerialWorker(QObject):
 
         # Nettoyage après la fin de la boucle (timeout ou réponse reçue)
         self._query_event_loop = None # Libère la référence à la boucle
-
-        return self._query_data_buffer # Retourne ce qui a été stocké dans le buffer
+        
+        
         self._query_waiting_for_response = False # <--- Pour la sécurité au cas où 
+        return self._query_data_buffer # Retourne ce qui a été stocké dans le buffer
+
         
         
     # --- Méthodes publiques pour envoyer des commandes (appelées depuis l'UI) ---
@@ -251,6 +267,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     start_timer_read_signal = pyqtSignal(int) # int = intervalle en ms
     stop_timer_read_signal = pyqtSignal()
     
+    set_default_query_timeout_signal = pyqtSignal(int)
+    
     
     def __init__(self):
         super().__init__()
@@ -330,10 +348,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.open_port_signal.connect(self.worker.open_port)
         self.close_port_signal.connect(self.worker.close_port)
         self.start_read_mesures_request.connect(self.worker._read_mesures)
-#        self.change_spinbox_value_request.connect(self.worker.query)
-        #timer : 
-        # self.start_timer_read_signal.connect(self.worker._data_read_timer.start) # Nécessite que le timer soit dans le worker
-        # self.stop_timer_read_signal.connect(self.worker._data_read_timer.stop)
+        
+        # partie spinbox pour les pas de mesures
+        self.set_default_query_timeout_signal.connect(self.worker.set_default_query_timeout)
+        self.pasMesures.valueChanged.connect(self.set_default_query_timeout_signal.emit)
+        self.set_default_query_timeout_signal.emit(self.pasMesures.value())
 
         # Connecte les signaux du worker à l'UI
         self.worker.data_received.connect(self.log_data_received) # Pour le logging générique
@@ -442,7 +461,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #     # Si le point 0 existe, on créé le nouveau point en ajoutant le
         #     # point précédent à la valeur de la vitesse d'acquisition
         #     self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
-        acquisition_interval_s = self.spinBox.value() / 1000.0
+        acquisition_interval_s = self.pasMesures.value() / 1000.0
         if len(self.Temps) > 0:
             self.Temps.append(self.Temps[-1] + acquisition_interval_s)
         else:
@@ -480,6 +499,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.Donnees.scrollToBottom()
 
     def TimerStartMesure(self):
+        # Toujours déconnecter avant de (re)connecter pour éviter les connexions multiples
+        try:
+            self.timerMesure.timeout.disconnect() # Déconnecte TOUS les slots connectés au timeout
+        except TypeError:
+            # Si aucun slot n'était connecté (premier démarrage par ex.), TypeError est levé, on l'ignore.
+            pass
+
         if self.btnCommencer.text() != "Pause":
             if self.btnCommencer.text() == "Commencer l'enregistrement":
                 self.console.append("Début de l'enregistrement des mesures")
@@ -488,43 +514,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.btnEnregistrer.setEnabled(True)
                 self.btnReiniGra.setEnabled(True)
 
-                        # Réinitialistaion des listes de données
-                self.resdonnees() 
+                self.resdonnees()
                 self.col += 3
-                self.row = 0        
-                #Création de nouvelles colonnes de données
+                self.row = 0
                 self.Donnees.insertColumn(self.col)
                 self.Donnees.insertColumn(self.col + 1)
                 self.Donnees.insertColumn(self.col + 2)
-                # Définition des entêtes de colonnes
-                self.colonne_Labels.append('Temps (s)')
-                self.colonne_Labels.append('Tension (V)')
-                self.colonne_Labels.append('Courant (A)')
-                self.Donnees.setHorizontalHeaderLabels(self.colonne_Labels)     
-                # boucle d'incrémentation des couleurs des courbes
-                if self.color < len(self.tab_couleur)-1:
+                self.colonne_Labels.extend(['Temps (s)', 'Tension (V)', 'Courant (A)']) # Utilisez extend pour ajouter
+                self.Donnees.setHorizontalHeaderLabels(self.colonne_Labels)
+                if self.color < len(self.tab_couleur) - 1:
                     self.color += 1
-                else :
+                else:
                     self.color = 0
-                
-                # Démarrage du timer d'acquisition
-                self.timerMesure.timeout.connect(self.start_read_mesures_request.emit) 
-                self.timerMesure.start(self.spinBox.value())
-                # if(self.checkBoxSimu.isChecked()):
-                #     self.spinBox.value()                
-                # else:
-                #     self.spinBox.value()                   
-                
+
             elif self.btnCommencer.text() == "Continuer":
                 self.console.append("Reprise des mesures")
                 self.btnCommencer.setText('Pause')
-                self.timerMesure.timeout.connect(self.start_read_mesures_request.emit)
-                self.timerMesure.start(self.spinBox.value())
-            
+
+            # --- Cette ligne est maintenant placée ici, après la déconnexion ---
+            self.timerMesure.timeout.connect(self.start_read_mesures_request.emit)
+            self.timerMesure.start(self.pasMesures.value())
+
         elif self.btnCommencer.text() == "Pause":
             self.console.append("Pause, les mesures sont stopées")
-            self.TimerStop()
-            self.btnCommencer.setText('Continuer')    
+            self.TimerStop() # TimerStop va appeler timerMesure.stop() et déconnecter tout
+            self.btnCommencer.setText('Continuer')
+
 
 
     def reiniTab(self):
@@ -540,6 +555,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnEnregistrer.setEnabled(False)
         
     def reiniGraphique(self):
+
         self.TabTension.clear()
         self.btnReiniGra.setEnabled(False)
  
@@ -592,12 +608,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def ChangeMode(self, checkState):
         info_spinbox = (checkState == Qt.Checked)
         if info_spinbox:
-            self.spinBox.setMinimum(10)
+            self.pasMesures.setMinimum(10)
         else:
-            self.spinBox.setMinimum(500)
+            self.pasMesures.setMinimum(500)
         # Informer le worker du changement de modepour le timer de mesure
         if self.serial_worker._mesure_timer.isActive():
-            self.start_mesure_timer_request.emit(self.spinBox.value(), info_spinbox)
+            self.start_mesure_timer_request.emit(self.pasMesures.value(), info_spinbox)
             
             
     def closeEvent(self, event):
@@ -616,3 +632,5 @@ if __name__ == '__main__':
     main_window = MainWindow()
     main_window.show()
     sys.exit(app.exec_())
+    
+    
