@@ -62,9 +62,11 @@ class SerialWorker(QObject):
         self._query_timeout_timer.timeout.connect(self._on_query_timeout)
         self._default_query_timeout_ms = 1000
 
+
         
     @pyqtSlot(str, int)
     def open_port(self, port_name, baud_rate):
+        
         """Ouvre le port série avec les paramètres spécifiés."""
         if self._serial_port.isOpen():
             self._serial_port.close()
@@ -79,21 +81,26 @@ class SerialWorker(QObject):
         if self._serial_port.open(QIODevice.ReadWrite):
             self._is_open = True
             self.port_status.emit(True, f"Port '{port_name}' ouvert à {baud_rate} bauds.")
+            self.data_received.emit("Port ouvert !")
+            self._remise_zero()
             
             
         else:
             self._is_open = False
             error_msg = self._serial_port.errorString()
             self.port_status.emit(False, f"Erreur d'ouverture de '{port_name}': {error_msg}")
+            self.data_received.emit(f"Erreur d'ouverture ")
             self.error_occurred.emit(error_msg)
 
     @pyqtSlot()
     def close_port(self):
         """Ferme le port série."""
         if self._serial_port.isOpen():
+            self._remise_zero()
             self._serial_port.close()
             self._is_open = False
             self.port_status.emit(False, "Port série fermé.")
+            self.data_received.emit("Port série fermé.")
             # Si une requête est en attente, la terminer
             if self._query_waiting_for_response and self._query_event_loop:
                 self._query_timeout_timer.stop()
@@ -202,14 +209,30 @@ class SerialWorker(QObject):
     def request_idn(self):
         """Demande l'identification de l'appareil et renvoie la réponse."""
         return self.query("*IDN?")
+    
+    
+    def request_status(self):
+        """Demande le statut de l'appareil et renvoie la réponse."""        
+        s = self.query("STATUS?")
+        if (s == "\12" or s== "↕"):
+            statut = "OCP OFF, C.C OFF, C.V OFF, LOCK ON/OFF"
+        elif (s == "S"):
+            statut = "OCP OFF, C.C ON, C.V OFF, LOCK ON/OFF"
+        elif (s=="R"):
+            statut ="OCP ON, C.C OFF, C.V OFF, LOCK ON/OFF" 
+        elif (s == "2"):
+            statut = "OCP ON, C.C OFF, C.V OFF, LOCK ON/OFF"
+        else:
+            statut = "Statut non réferencé ou alors résistance exacte"
+        return statut
+        
+
 
     def set_voltage(self, voltage):
         """Définit la tension de sortie de l'alimentation."""
-        # Pas besoin de query ici car pas de réponse attendue immédiatement
         self.send_command(f"VSET1:{voltage}")
 
     def get_voltage(self):
-        # Demande la tension de sortie actuelle et renvoie la valeur.
         responsev = float(self.query("VOUT1?"))
         return responsev
         try:
@@ -224,7 +247,6 @@ class SerialWorker(QObject):
             return float('nan')
 
     def set_ampere(self, ampere):
-        """Définit la tension de sortie de l'alimentation."""
         self.send_command(f"ISET1:{ampere}")
 
     def get_current(self):
@@ -261,11 +283,16 @@ class SerialWorker(QObject):
         
         self.table_mesures_ready.emit([TensionValue, CurrentValue])
         
-    
-    
+        
     def _set_lock(self, state):
         # si ocp acitf = 1 ou inactif = 0
         self.send_command(f"LOCK{int(state)}")
+        
+        
+        
+    def _remise_zero(self):
+            self.send_command("ISET1:0")
+            self.send_command("VSET1:0")
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     """
@@ -293,21 +320,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.worker.moveToThread(self.thread) # IMPORTANT: Déplace le worker vers le nouveau thread
 
         # self.plot_widget = pg.PlotWidget()
-        
+        self.statusbar.showMessage("tt")
         
         self.console.setReadOnly(True)
         self.entreeCommande.setPlaceholderText("Entrez une commande SCPI (ex: VSET1:5)")
         self.entreeCommande.returnPressed.connect(self.send_custom_command)
 
-        self.btnOn.clicked.connect(self.start_connection)
+        self.btnOn.clicked.connect(self.info_port_connection)
         self.btnOff.clicked.connect(self.stop_connection)
         self.btnCommencer.clicked.connect(self.TimerStartMesure)
-        self.btn_idn.clicked.connect(self._on_request_idn_clicked)
         self.buttonOCP.clicked.connect(self.OCP_mode)
         self.buttonLOCK.clicked.connect(self.LOCK_mode)
         self.indiceOut.clicked.connect(self.Output_mode)
        
-        
+
+       
         self.ChangeSingleStepVoltage.valueChanged.connect(self.spinVoltage.setSingleStep)
         self.ChangeSingleStepAmpere.valueChanged.connect(self.spinAmpere.setSingleStep)
         
@@ -315,13 +342,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.spinVoltage.valueChanged.connect(self.worker.set_voltage)
         self.spinAmpere.valueChanged.connect(self.worker.set_ampere)
         
-        #self.pasMesures.valueChanged.connect(self.worker.query( JE SAIS PAS QUOI METTRE PCK CA CHANGE AUSSI LE TEMPS DES AUTRES QUERYS AUTRE QUE LES MESURES))
 
         # Bouton UI, pas besoin du Worker Thread
         self.btnReiniGra.clicked.connect(self.reiniGraphique)
-        self.btnReini.clicked.connect(self.reiniTab)
+        self.btnReiniDonnees.clicked.connect(self.reiniTab)
         self.btnEnregistrer.clicked.connect(self.enregTab) #tableau des données
-#        self.btnEnregistrerGraph.clicked.connect(self.enregGraph) #enregistre graphe
+        # self.btnEnregistrerGraph.clicked.connect(self.enregGraph) #enregistre graphe
         self.btnReiniTout.clicked.connect(self.reiniAll)
 
         # layout.addLayout(btn_layout)
@@ -335,7 +361,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         self.timerMesure = QTimer()
 
-        
         
         # Indice de couleur pour les courbes
         self.color = 0
@@ -370,23 +395,48 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pasMesures.valueChanged.connect(self.set_default_query_timeout_signal.emit)
         self.set_default_query_timeout_signal.emit(self.pasMesures.value())
 
+        # boutons pour la console et les lignes de commandes :
+        self.btn_idn.clicked.connect(self.on_request_idn_clicked)
+        self.btn_status.clicked.connect(self.on_request_status_clicked)
+            
+            
+        self.btn_preset_idn.clicked.connect(self.pre_commande_idn)
+        self.btn_preset_get_ampere.clicked.connect(self.pre_commande_outi)
+        self.btn_preset_get_voltage.clicked.connect(self.pre_commande_outv)
+        self.btn_preset_set_ampere.clicked.connect(self.pre_commande_seti)
+        self.btn_preset_set_voltage.clicked.connect(self.pre_commande_setv)
+        self.btn_preset_lock.clicked.connect(self.pre_commande_lock)        
+        self.btn_preset_ocp.clicked.connect(self.pre_commande_ocp)        
+        self.btn_preset_status.clicked.connect(self.pre_commande_status)        
+        self.btn_preset_out.clicked.connect(self.pre_commande_out)
+
+
+
+
+
         # Connecte les signaux du worker à l'UI
         self.worker.data_received.connect(self.log_data_received) # Pour le logging générique
         self.worker.error_occurred.connect(self.log_error)
-
+#        self.worker.port_status.connect(self.log_port_status)
         # Démarre le thread (le worker ne fera rien tant qu'il n'est pas appelé via ses slots)
         self.thread.start()
         self.console.append("Application démarrée. Thread worker actif.")
         
        
-        self.start_connection() #Je lance automatiquement à l'init la connexion par ce que jtrouve ca nul
+        self.info_port_connection() #Je lance automatiquement à l'init la connexion par ce que jtrouve ca nul
 
 
 
-
-    def start_connection(self):
+    def info_port_connection(self):
+        port = self.spinBox_COM.value()
+        self.start_connection(port)
+        
+        
+    def start_connection(self, va :int):
         """Demande au worker d'ouvrir le port."""
-        self.open_port_signal.emit("COM3", 9600) # Adaptez le port et baud rate
+        num_port = va
+        self.open_port_signal.emit(f"COM{num_port}", 9600)
+        # self.open_port_signal.emit("COM3", 9600) # Adaptez le port et baud rate
         self.console.append("Statut: Connexion en cours...")
         self.OCP_mode()
         self.Output_mode()
@@ -417,20 +467,63 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.console.append(f"<span style='color: green;'>Envoyé: {command}</span>")
             self.entreeCommande.clear()
 
-    # --- Nouvelles méthodes pour gérer les réponses des requêtes (appelant worker.query) ---
-    def _on_request_idn_clicked(self):
+
+    def on_request_idn_clicked(self):
         """Gère le clic sur le bouton IDN et affiche la réponse."""
         if self.worker._is_open:
             self.console.append("Demande d'IDN envoyée (attente de réponse)...")
             # Appel bloquant pour le worker, non pour l'UI
             idn_response = self.worker.request_idn()
-            if idn_response:
-                self.console.append(f"<span style='color: darkgreen;'>IDN de l'appareil: {idn_response}</span>")
-            else:
+            if not idn_response:
                 self.console.append("<span style='color: orange;'>Aucune réponse IDN ou timeout.</span>")
         else:
             self.log_error("Port non ouvert pour demander l'IDN.")
+            
+            
+    def on_request_status_clicked(self):
+        """Gère le clic sur le bouton IDN et affiche la réponse."""
+        if self.worker._is_open:
+            self.console.append("Demande du statut envoyée (attente de réponse)...")
+            # Appel bloquant pour le worker, non pour l'UI
+            status_response = self.worker.request_status()
+            if not status_response:
+                self.console.append("<span style='color: orange;'>Aucune réponse de statut ou timeout.</span>")
+            else:
+                self.console.append(f"Statut reçu : {status_response}")
+        else:
+            self.log_error("Port non ouvert pour demander le statut")
+
+
     
+    def pre_commande_idn(self):
+        self.entreeCommande.setText("*IDN?")
+        
+    def pre_commande_outi(self):
+        self.entreeCommande.setText("IOUT1?")
+        
+    def pre_commande_outv(self):
+        self.entreeCommande.setText("VOUT1?")
+        
+    def pre_commande_seti(self):
+        self.entreeCommande.setText("ISET1:'valeurs'")
+        
+    def pre_commande_setv(self):
+        self.entreeCommande.setText("VSET1:'valeurs'")
+
+    def pre_commande_lock(self):
+        self.entreeCommande.setText("LOCK'Allumer = 1 Eteint = 0'")
+
+    def pre_commande_ocp(self):
+        self.entreeCommande.setText("OCP'Allumer = 1 Eteint = 0'")
+
+    def pre_commande_status(self):
+        self.entreeCommande.setText("STATUS?")
+
+    def pre_commande_out(self):
+        self.entreeCommande.setText("OUT'Allumer = 1 Eteint = 0'")  
+        
+        
+        
     @pyqtSlot(bool)
     def OCP_mode(self):
         if self.buttonOCP.isChecked():
@@ -529,10 +622,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if self.btnCommencer.text() == "Commencer l'enregistrement":
                 self.console.append("Début de l'enregistrement des mesures")
                 self.btnCommencer.setText('Pause')
-                self.btnReini.setEnabled(True)
+                self.btnReiniDonnees.setEnabled(True)
                 self.btnEnregistrer.setEnabled(True)
                 self.btnReiniGra.setEnabled(True)
+                self.btnEnregistrerGraph.setEnabled(True)
                 self.btnReiniTout.setEnabled(True)
+                
 
                 self.resdonnees()
                 self.col += 3
@@ -549,7 +644,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             elif self.btnCommencer.text() == "Continuer":
                 self.console.append("Reprise des mesures")
-                self.btnCommencer.setText('Pause')
+                self.btnCommencer.setText('Pause') 
 
             # --- Cette ligne est maintenant placée ici, après la déconnexion ---
             self.timerMesure.timeout.connect(self.start_read_mesures_request.emit)
@@ -566,23 +661,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.resdonnees()
         while self.Donnees.rowCount() > 0:
             self.Donnees.removeRow(0)
-        while self.Donnees.columnCount() > 0:
+        while self.Donnees.columnCount() > 3:
             self.Donnees.removeColumn(0)            
         self.col = -3
         self.row = 0
-        self.btnReini.setEnabled(False)
+        self.btnReiniDonnees.setEnabled(False)
         self.btnEnregistrer.setEnabled(False)
         
         
     def reiniGraphique(self):
         self.TabTension.clear()
         self.btnReiniGra.setEnabled(False)
- 
+        self.btnEnregistrerGraph.setEnabled(False)
+        
+        
     def reiniAll(self):
+        self.btnCommencer.setText("Commencer l'enregistrement")
         self.reiniTab()
         self.reiniGraphique()
         self.btnReiniGra.setEnabled(False)
 
+
+                
     
     def enregTab(self):
         """
@@ -601,7 +701,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
        # Si l'utilisateur annule la boîte de dialogue (aucune sélection de chemin)
         if not file_path:
-           self.Data.appendHtml("<b style='color:red'>Enregistrement annulé</b><br>")
+           self.console.append("<b style='color:red'>Enregistrement annulé</b><br>")
            return
 
        # Détermine le séparateur en fonction du filtre sélectionné ou de l'extension du fichier
@@ -621,13 +721,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 for x, y, z in zip(self.Temps, self.Tension, self.Current):
                    file.write(f"{x}{separator}{y}{separator}{z}\n")
 
-           # Affiche un message de succès dans le widget self.Data
+           # Affiche un message de succès dans le widget self.console
             path_obj = pathlib.Path(file_path)
-            self.Data.appendHtml(f"<b style='color:green'>{path_obj.name}</b> : Enregistrement de {len(self.Temps)} points fait.<br>")
+            self.console.append(f"<b style='color:green'>{path_obj.name}</b> : Enregistrement de {len(self.Temps)} points fait.<br>")
 
         except Exception as e:
            # Affiche un message d'erreur si l'enregistrement échoue
-           self.Data.appendHtml(f"<b style='color:red'>Erreur lors de l'enregistrement des données principales : {e}</b><br>")
+           self.console.appen(f"<b style='color:red'>Erreur lors de l'enregistrement des données principales : {e}</b><br>")
            return # Arrête la fonction si l'enregistrement principal échoue
        
         
