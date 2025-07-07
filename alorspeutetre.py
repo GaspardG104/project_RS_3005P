@@ -46,6 +46,9 @@ class SerialWorker(QObject):
     table_mesures_ready = pyqtSignal(list)
     #signal pour change la valeurs de temps de latence de query
     default_query_timeout_updated = pyqtSignal(int)
+    
+    #pour afficher dans les ldc number la valeurs reel
+    valeurs_reels = pyqtSignal(list)
 
     def __init__(self):
         super().__init__()
@@ -89,7 +92,7 @@ class SerialWorker(QObject):
             self._is_open = False
             error_msg = self._serial_port.errorString()
             self.port_status.emit(False, f"Erreur d'ouverture de '{port_name}': {error_msg}")
-            self.data_received.emit(f"Erreur d'ouverture ")
+            self.data_received.emit("Erreur d'ouverture ")
             self.error_occurred.emit(error_msg)
 
     @pyqtSlot()
@@ -278,6 +281,7 @@ class SerialWorker(QObject):
     def _read_mesures(self):
         if not self._is_open:
             self.error_occurred.emit("Port non ouvert pour la lecture des données.")
+            
             return
         
         TensionValue = self.get_voltage() # Appelle méthode get_voltage qui utilise query
@@ -313,6 +317,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     set_default_query_timeout_signal = pyqtSignal(int)
     
     
+    
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -334,7 +339,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.buttonOCP.clicked.connect(self.OCP_mode)
         self.buttonLOCK.clicked.connect(self.LOCK_mode)
         self.indiceOut.clicked.connect(self.Output_mode)
-       
 
        
         self.ChangeSingleStepVoltage.valueChanged.connect(self.spinVoltage.setSingleStep)
@@ -344,8 +348,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.spinVoltage.valueChanged.connect(self.worker.set_voltage)
         self.spinAmpere.valueChanged.connect(self.worker.set_ampere)
         
-        
-
         # Bouton UI, pas besoin du Worker Thread
         self.btnReiniGra.clicked.connect(self.reiniGraphique)
         self.btnReiniDonnees.clicked.connect(self.reiniTab)
@@ -356,15 +358,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # layout.addLayout(btn_layout)
         
         self.worker.table_mesures_ready.connect(self.tableau)
-        self.worker.table_mesures_ready.connect(self.valeursReels)
-        
-        # tableau graphe, je pense qu'il faut les déclarés que une fois mais jsp où et comment...
+        self.worker.table_mesures_ready.connect(self.updateValue)
+
         self.Temps = []
         self.Tension = []
         self.Current=[]
         self.savetime = 0
         self.timerMesure = QTimer()
-
+        self.aquisition = False
         
         # Indice de couleur pour les courbes
         self.color = 0
@@ -374,8 +375,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.col = 0
         self.row = 0
 
-        
-        
         # Couleur du fond du graphe
         self.TabTension.setBackground("w")
         
@@ -395,11 +394,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.close_port_signal.connect(self.worker.close_port)
         self.start_read_mesures_request.connect(self.worker._read_mesures)
         
-        # partie spinbox pour les pas de mesures
-        # self.set_default_query_timeout_signal.connect(self.worker.set_default_query_timeout)
-        # self.pasMesures.valueChanged.connect(self.set_default_query_timeout_signal.emit)
-        # self.set_default_query_timeout_signal.emit(self.pasMesures.value())
-        
         self.pasMesures.valueChanged.connect(self.changeTimer)
 
         # boutons pour la console et les lignes de commandes :
@@ -417,14 +411,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btn_preset_status.clicked.connect(self.pre_commande_status)        
         self.btn_preset_out.clicked.connect(self.pre_commande_out)
 
-
-
-
-
         # Connecte les signaux du worker à l'UI
-        self.worker.data_received.connect(self.log_data_received) # Pour le logging générique
+        #self.worker.data_received.connect(self.log_data_received) # Pour le logging générique
         self.worker.error_occurred.connect(self.log_error)
-#        self.worker.port_status.connect(self.log_port_status)
+        # self.worker.port_status.connect(self.log_port_status)
         # Démarre le thread (le worker ne fera rien tant qu'il n'est pas appelé via ses slots)
         self.thread.start()
         self.console.append("Application démarrée. Thread worker actif.")
@@ -444,11 +434,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """Demande au worker d'ouvrir le port."""
         num_port = va
         self.open_port_signal.emit(f"COM{num_port}", 9600)
-        # self.open_port_signal.emit("COM3", 9600) # Adaptez le port et baud rate
         self.console.append("Statut: Connexion en cours...")
         self.OCP_mode()
         self.Output_mode()
         self.LOCK_mode()
+        # Toujours déconnecter avant de (re)connecter pour éviter les connexions multiples
+        try:
+            self.timerMesure.timeout.disconnect() # Déconnecte TOUS les slots connectés au timeout
+            
+            
+            
+            
+        except TypeError:
+            # Si aucun slot n'était connecté (premier démarrage par ex.), TypeError est levé, on l'ignore.
+            pass
+        
+        self.timerMesure.timeout.connect(self.start_read_mesures_request.emit)
+        self.timerMesure.start(self.pasMesures.value())
 
 
     def stop_connection(self):
@@ -477,7 +479,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
     def on_request_idn_clicked(self):
-        """Gère le clic sur le bouton IDN et affiche la réponse."""
         if self.worker._is_open:
             self.console.append("Demande d'IDN envoyée (attente de réponse)...")
             # Appel bloquant pour le worker, non pour l'UI
@@ -489,7 +490,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             
             
     def on_request_status_clicked(self):
-        """Gère le clic sur le bouton IDN et affiche la réponse."""
         if self.worker._is_open:
             self.console.append("Demande du statut envoyée (attente de réponse)...")
             # Appel bloquant pour le worker, non pour l'UI
@@ -501,14 +501,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.log_error("Port non ouvert pour demander le statut")
 
-
-    def valeursReels(self, vr):
-        self.TensionValue, self.CurrentValue = vr
+    def updateValue(self, data_row_from_worker):
+        self.TensionValue, self.CurrentValue = data_row_from_worker
         self.nbRealVoltage.display(self.TensionValue)
         self.nbRealAmpere.display(self.CurrentValue)
-        
-    def valeursReelsAmperes(self):
-        self.nbRealAmpere
         
     def pre_commande_idn(self):
         self.entreeCommande.setText("*IDN?")
@@ -587,82 +583,89 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
  
     def tableau(self, data_row_from_worker):   
-        # Génération de l'axe X 
-        # if len(self.Temps) > 0 and self.row > 0:
-        #     # Si le point 0 existe, on créé le nouveau point en ajoutant le
-        #     # point précédent à la valeur de la vitesse d'acquisition
-        #     self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
-        acquisition_interval_s = self.pasMesures.value() / 1000.0
-        if len(self.Temps) > 0:
-            self.Temps.append(self.Temps[-1] + acquisition_interval_s)
-        elif self.savetime :
-            self.Temps.append(self.savetime + acquisition_interval_s)
-        
+        if self.aquisition is False:
+            return
         else:
-            self.Temps.append(0)
-        
-        
-        # Si on est en mode simu, on ajoute des points aléatoires
-        if(self.checkBoxSimu.isChecked()):
-            self.TensionValue = (random.uniform(0, 2) + 29)
-            self.CurrentValue = (random.uniform(0, 2) + 4)
-        
-        else:                     
-        # Récuperation des tableaux :            
-            self.TensionValue, self.CurrentValue = data_row_from_worker
-        
-        self.Tension.append(self.TensionValue)
-        self.Current.append(self.CurrentValue)
+            # Génération de l'axe X 
+            # if len(self.Temps) > 0 and self.row > 0:
+            #     # Si le point 0 existe, on créé le nouveau point en ajoutant le
+            #     # point précédent à la valeur de la vitesse d'acquisition
+            #     self.Temps.append(self.Temps[-1] + self.spinBox.value()/1000.0)
+            acquisition_interval_s = self.pasMesures.value() / 1000.0
+            if len(self.Temps) > 0:
+                self.Temps.append(self.Temps[-1] + acquisition_interval_s)
+            elif self.savetime :
+                self.Temps.append(self.savetime + acquisition_interval_s)
             
-        # Affichage de la courbe
-        self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
-        self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
-        self.TabTension.show()
-        row = self.Donnees.rowCount()
-        if self.row >= row:
-            self.Donnees.insertRow(row)
-        self.Donnees.setItem(row, self.col, 
-                             QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
-        self.Donnees.setItem(self.row,self.col+1,
-                              QTableWidgetItem("{:.2f}".format(self.TensionValue)))
-        self.Donnees.setItem(self.row,self.col+2,
-                              QTableWidgetItem("{:.2f}".format(self.CurrentValue)))
-        self.row += 1     
-        
-        self.Donnees.scrollToBottom()
-        self.btnReiniDonnees.setEnabled(True)
-        self.btnEnregistrer.setEnabled(True)
-        self.btnEnregistrerGraph.setEnabled(True)
-        self.btnReiniTout.setEnabled(True)
-        self.btnReiniGra.setEnabled(True)
+            else:
+                self.Temps.append(0)
+            
+            
+            # Si on est en mode simu, on ajoute des points aléatoires
+            if(self.checkBoxSimu.isChecked()):
+                self.TensionValue = (random.uniform(0, 2) + 29)
+                self.CurrentValue = (random.uniform(0, 2) + 4)
+            
+            else:                     
+            # Récuperation des tableaux :            
+                self.TensionValue, self.CurrentValue = data_row_from_worker
+            
+            self.Tension.append(self.TensionValue)
+            self.Current.append(self.CurrentValue)
+                
+            # Affichage de la courbe
+            self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
+            self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
+            self.TabTension.show()
+            row = self.Donnees.rowCount()
+            if self.row >= row:
+                self.Donnees.insertRow(row)
+            self.Donnees.setItem(row, self.col, 
+                                 QTableWidgetItem("{:.2f}".format(self.Temps[-1])))
+            self.Donnees.setItem(self.row,self.col+1,
+                                  QTableWidgetItem("{:.2f}".format(self.TensionValue)))
+            self.Donnees.setItem(self.row,self.col+2,
+                                  QTableWidgetItem("{:.2f}".format(self.CurrentValue)))
+            self.row += 1     
+            
+            self.Donnees.scrollToBottom()
+            self.btnReiniDonnees.setEnabled(True)
+            self.btnEnregistrer.setEnabled(True)
+            self.btnEnregistrerGraph.setEnabled(True)
+            self.btnReiniTout.setEnabled(True)
+            self.btnReiniGra.setEnabled(True)
 
     def TimerStartMesure(self):
-        # Toujours déconnecter avant de (re)connecter pour éviter les connexions multiples
-        try:
-            self.timerMesure.timeout.disconnect() # Déconnecte TOUS les slots connectés au timeout
-        except TypeError:
-            # Si aucun slot n'était connecté (premier démarrage par ex.), TypeError est levé, on l'ignore.
-            pass
+        # # Toujours déconnecter avant de (re)connecter pour éviter les connexions multiples
+        # try:
+        #     self.timerMesure.timeout.disconnect() # Déconnecte TOUS les slots connectés au timeout
+        # except TypeError:
+        #     # Si aucun slot n'était connecté (premier démarrage par ex.), TypeError est levé, on l'ignore.
+        #     pass
 
         if self.btnCommencer.text() != "Pause":
             if self.btnCommencer.text() == "Commencer l'enregistrement":
                 self.console.append("Début de l'enregistrement des mesures")
                 self.btnCommencer.setText('Pause')
                 self.resdonnees()
+                self.aquisition = True
+
             elif self.btnCommencer.text() == "Continuer":
                 self.console.append("Reprise des mesures")
-                self.btnCommencer.setText('Pause') 
+                self.btnCommencer.setText('Pause')
+                self.aquisition = True
+                
 
 
             # --- Cette ligne est maintenant placée ici, après la déconnexion ---
-            self.timerMesure.timeout.connect(self.start_read_mesures_request.emit)
-            self.timerMesure.start(self.pasMesures.value())
+            # self.timerMesure.timeout.connect(self.start_read_mesures_request.emit)
+            # self.timerMesure.start(self.pasMesures.value())
 
         elif self.btnCommencer.text() == "Pause":
             self.console.append("Pause, les mesures sont stopées")
-            self.TimerStop() # TimerStop va appeler timerMesure.stop() et déconnecter tout
+            # self.TimerStop() # TimerStop va appeler timerMesure.stop() et déconnecter tout
             self.btnCommencer.setText('Continuer')
-
+            self.aquisition = False
 
 
     def reiniTab(self):
@@ -685,7 +688,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
     def reiniAll(self):
         self.reiniGraphique() # Bien garder le reiniGraphique avant le reini tableau pour que self.Temps[-1] ne soie pas effacer par le resdonnees() de reini tab
-        self.reiniTab()
+        self.reiniTab()           
         self.btnReiniDonnees.setEnabled(False)
         self.btnEnregistrer.setEnabled(False)
         self.btnEnregistrerGraph.setEnabled(False)

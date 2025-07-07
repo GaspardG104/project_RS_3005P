@@ -89,8 +89,11 @@
       <bold>true</bold>
      </font>
     </property>
+    <property name="toolTip">
+     <string>Graphique </string>
+    </property>
     <property name="text">
-     <string>Graphique tension :</string>
+     <string>Graphique :</string>
     </property>
    </widget>
    <widget class="PlotWidget" name="TabTension" native="true">
@@ -114,6 +117,9 @@
       <height>200</height>
      </size>
     </property>
+    <property name="toolTip">
+     <string>Graphique representant les courbes de la Tension et du Courant selon le Temps</string>
+    </property>
    </widget>
    <widget class="QPushButton" name="buttonOCP">
     <property name="geometry">
@@ -129,6 +135,9 @@
       <width>16777215</width>
       <height>16777215</height>
      </size>
+    </property>
+    <property name="toolTip">
+     <string>Mode protection contre les surintensites</string>
     </property>
     <property name="text">
      <string>OCP</string>
@@ -170,6 +179,9 @@
       <width>91</width>
       <height>71</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Verrouillage du panneau</string>
     </property>
     <property name="text">
      <string>LOCK</string>
@@ -363,6 +375,9 @@
       <bold>true</bold>
      </font>
     </property>
+    <property name="toolTip">
+     <string>Modes</string>
+    </property>
     <property name="text">
      <string>Modes :</string>
     </property>
@@ -378,6 +393,9 @@
       <width>61</width>
       <height>61</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Led indicatrice Sortie</string>
     </property>
     <property name="text">
      <string/>
@@ -404,6 +422,9 @@
       <height>0</height>
      </size>
     </property>
+    <property name="toolTip">
+     <string>Tableau des donnees des mesures</string>
+    </property>
     <attribute name="horizontalHeaderCascadingSectionResizes">
      <bool>false</bool>
     </attribute>
@@ -417,7 +438,7 @@
     </column>
     <column>
      <property name="text">
-      <string>Voltes(V)</string>
+      <string>Volts(V)</string>
      </property>
     </column>
     <column>
@@ -507,8 +528,8 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>930</x>
-      <y>590</y>
+      <x>920</x>
+      <y>580</y>
       <width>121</width>
       <height>20</height>
      </rect>
@@ -517,6 +538,9 @@
      <font>
       <pointsize>12</pointsize>
      </font>
+    </property>
+    <property name="toolTip">
+     <string>Mode simulation</string>
     </property>
     <property name="text">
      <string>Simulation</string>
@@ -533,6 +557,9 @@
       <width>81</width>
       <height>41</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Temps(ms) :</string>
     </property>
     <property name="text">
      <string>Temps(ms) :</string>
@@ -604,6 +631,9 @@
       <height>20</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Champ d'entre de commande</string>
+    </property>
     <property name="dragEnabled">
      <bool>true</bool>
     </property>
@@ -623,6 +653,9 @@
       <height>231</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Boite de reception des commandes et informations</string>
+    </property>
    </widget>
    <widget class="QDoubleSpinBox" name="spinVoltage">
     <property name="geometry">
@@ -632,6 +665,9 @@
       <width>161</width>
       <height>71</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Pas de changement des Volts</string>
     </property>
     <property name="maximum">
      <double>30.000000000000000</double>
@@ -651,6 +687,9 @@
       <width>161</width>
       <height>71</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Pas de changement d'Amperage</string>
     </property>
     <property name="decimals">
      <number>3</number>
@@ -706,6 +745,9 @@
       <height>31</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Connecte</string>
+    </property>
     <property name="text">
      <string>Connecte</string>
     </property>
@@ -718,6 +760,9 @@
       <width>61</width>
       <height>31</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Deconnecte</string>
     </property>
     <property name="text">
      <string>Deconnecte</string>
@@ -732,6 +777,9 @@
       <height>23</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Commande pour avoir l'identification de l'appareil</string>
+    </property>
     <property name="text">
      <string>IDN</string>
     </property>
@@ -744,6 +792,9 @@
       <width>81</width>
       <height>41</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Change le pas des Volts</string>
     </property>
     <property name="maximum">
      <double>30.000000000000000</double>
@@ -768,7 +819,7 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>Change le pas </string>
+     <string>Change le pas des Amperes</string>
     </property>
     <property name="decimals">
      <number>3</number>
@@ -794,6 +845,9 @@
       <width>61</width>
       <height>31</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Sortie</string>
     </property>
     <property name="text">
      <string>Sortie</string>
@@ -834,7 +888,7 @@
      <cursorShape>ArrowCursor</cursorShape>
     </property>
     <property name="toolTip">
-     <string>Enregistre le tableau de donnees</string>
+     <string>Enregistre le graphique</string>
     </property>
     <property name="text">
      <string>Enregistrer Graph</string>
@@ -912,6 +966,9 @@
       <bold>true</bold>
      </font>
     </property>
+    <property name="toolTip">
+     <string>Console</string>
+    </property>
     <property name="text">
      <string>Console :</string>
     </property>
@@ -920,10 +977,13 @@
     <property name="geometry">
      <rect>
       <x>540</x>
-      <y>860</y>
+      <y>890</y>
       <width>75</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Commande pour definir le voltage</string>
     </property>
     <property name="text">
      <string>Set Voltage</string>
@@ -933,10 +993,13 @@
     <property name="geometry">
      <rect>
       <x>540</x>
-      <y>890</y>
+      <y>920</y>
       <width>75</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Commande pour definir l'Amperage</string>
     </property>
     <property name="text">
      <string>Set Ampere</string>
@@ -945,11 +1008,14 @@
    <widget class="QPushButton" name="btn_preset_ocp">
     <property name="geometry">
      <rect>
-      <x>540</x>
-      <y>920</y>
+      <x>460</x>
+      <y>890</y>
       <width>75</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Commande du mode de protection contre les surintensite</string>
     </property>
     <property name="text">
      <string>OCP</string>
@@ -964,6 +1030,9 @@
       <height>23</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Commande pour avoir l'identification de l'appareil</string>
+    </property>
     <property name="text">
      <string>IDN</string>
     </property>
@@ -977,6 +1046,9 @@
       <height>23</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Commande pour activer/desactiver le verrouillage du panneau</string>
+    </property>
     <property name="text">
      <string>LOCK</string>
     </property>
@@ -984,11 +1056,14 @@
    <widget class="QPushButton" name="btn_preset_status">
     <property name="geometry">
      <rect>
-      <x>460</x>
-      <y>890</y>
+      <x>540</x>
+      <y>860</y>
       <width>75</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Commande pour connaitre le statut de l'appareil</string>
     </property>
     <property name="text">
      <string>STATUS</string>
@@ -998,10 +1073,13 @@
     <property name="geometry">
      <rect>
       <x>620</x>
-      <y>890</y>
+      <y>920</y>
       <width>75</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Commande pour connaitre l'Amperage reel</string>
     </property>
     <property name="text">
      <string>Get Ampere</string>
@@ -1011,10 +1089,13 @@
     <property name="geometry">
      <rect>
       <x>620</x>
-      <y>860</y>
+      <y>890</y>
       <width>75</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Commande pour connaitre le Voltage reel</string>
     </property>
     <property name="text">
      <string>Get Voltage</string>
@@ -1024,10 +1105,13 @@
     <property name="geometry">
      <rect>
       <x>620</x>
-      <y>920</y>
+      <y>860</y>
       <width>75</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Commande pour activer/desactiver la sortie</string>
     </property>
     <property name="text">
      <string>OUT</string>
@@ -1067,6 +1151,9 @@
       <bold>true</bold>
      </font>
     </property>
+    <property name="toolTip">
+     <string>Commandes</string>
+    </property>
     <property name="text">
      <string>Commandes :</string>
     </property>
@@ -1081,7 +1168,7 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>Demande le statut </string>
+     <string>Commande pour connaitre le statut de l'appareil</string>
     </property>
     <property name="text">
      <string>STATUS</string>
@@ -1096,6 +1183,9 @@
       <height>16</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Pas (SingleStep)</string>
+    </property>
     <property name="text">
      <string>Pas (SingleStep):</string>
     </property>
@@ -1108,6 +1198,9 @@
       <width>81</width>
       <height>41</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Led indicatrice LOCK</string>
     </property>
     <property name="text">
      <string/>
@@ -1122,6 +1215,9 @@
       <height>41</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Led indicatrice C.C</string>
+    </property>
     <property name="text">
      <string/>
     </property>
@@ -1135,6 +1231,9 @@
       <height>41</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Led indicatrice C.V</string>
+    </property>
     <property name="text">
      <string/>
     </property>
@@ -1147,6 +1246,9 @@
       <width>81</width>
       <height>41</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Led indicatrice OCP</string>
     </property>
     <property name="text">
      <string/>
@@ -1164,11 +1266,14 @@
       <height>16</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Pas (SingleStep)</string>
+    </property>
     <property name="text">
      <string>Pas (SingleStep):</string>
     </property>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>40</x>
@@ -1180,8 +1285,11 @@
     <layout class="QGridLayout" name="gridLayout">
      <item row="0" column="0">
       <widget class="QLabel" name="label_11">
+       <property name="toolTip">
+        <string>Volts</string>
+       </property>
        <property name="text">
-        <string>Voltes :</string>
+        <string>Volts :</string>
        </property>
        <property name="textFormat">
         <enum>Qt::PlainText</enum>
@@ -1193,6 +1301,9 @@
      </item>
      <item row="2" column="0">
       <widget class="QLabel" name="label_14">
+       <property name="toolTip">
+        <string>Amperes</string>
+       </property>
        <property name="text">
         <string>Amperes :</string>
        </property>
@@ -1206,6 +1317,9 @@
      </item>
      <item row="3" column="0">
       <widget class="QLabel" name="label_13">
+       <property name="toolTip">
+        <string>Amperes reels</string>
+       </property>
        <property name="text">
         <string>Amperes reels :</string>
        </property>
@@ -1219,8 +1333,11 @@
      </item>
      <item row="1" column="0">
       <widget class="QLabel" name="label_12">
+       <property name="toolTip">
+        <string>Volts reels</string>
+       </property>
        <property name="text">
-        <string>Voltes reels :</string>
+        <string>Volts reels :</string>
        </property>
        <property name="textFormat">
         <enum>Qt::PlainText</enum>
@@ -1232,7 +1349,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>120</x>
@@ -1269,8 +1386,11 @@
          <bold>true</bold>
         </font>
        </property>
-       <property name="text">
+       <property name="toolTip">
         <string>Valeurs</string>
+       </property>
+       <property name="text">
+        <string>Valeurs :</string>
        </property>
       </widget>
      </item>
@@ -1308,7 +1428,7 @@
      <item row="2" column="0">
       <widget class="QLCDNumber" name="nbRealVoltage">
        <property name="toolTip">
-        <string>Nombre de Voltes</string>
+        <string>Nombre reel de Voltes</string>
        </property>
        <property name="layoutDirection">
         <enum>Qt::LeftToRight</enum>
@@ -1379,7 +1499,7 @@
         </sizepolicy>
        </property>
        <property name="toolTip">
-        <string>Nombre d'Amperes</string>
+        <string>Nombre reel d'Amperes</string>
        </property>
        <property name="autoFillBackground">
         <bool>true</bool>
