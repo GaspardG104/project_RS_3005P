@@ -65,7 +65,6 @@ class SerialWorker(QObject):
         self._query_timeout_timer.timeout.connect(self._on_query_timeout)
         self._default_query_timeout_ms = 1000
 
-
         
     @pyqtSlot(str, int)
     def open_port(self, port_name, baud_rate):
@@ -85,8 +84,7 @@ class SerialWorker(QObject):
             self._is_open = True
             self.port_status.emit(True, f"Port '{port_name}' ouvert à {baud_rate} bauds.")
             self.data_received.emit("Port ouvert !")
-            self._remise_zero()
-            
+            self._remise_zero()  
             
         else:
             self._is_open = False
@@ -121,6 +119,7 @@ class SerialWorker(QObject):
         else:
             self.error_occurred.emit("Impossible d'écrire: le port n'est pas ouvert.")
 
+
     @pyqtSlot()
     def _read_data(self):
         """Slot pour lire les données disponibles quand 'readyRead' est émis."""
@@ -141,6 +140,7 @@ class SerialWorker(QObject):
 
             except UnicodeDecodeError:
                 self.error_occurred.emit(f"Erreur de décodage des données: {data!r}")
+               
                 
     @pyqtSlot()
     def _on_query_timeout(self):
@@ -150,7 +150,6 @@ class SerialWorker(QObject):
             self._query_event_loop.quit() # Quitte la boucle d'événements
         self._query_waiting_for_response = False
         self._query_data_buffer = "" # Efface le buffer en cas de timeout
-
 
 
     @pyqtSlot(int)
@@ -163,16 +162,9 @@ class SerialWorker(QObject):
             self.error_occurred.emit("Le timeout des requêtes doit être une valeur positive.")
         # PAS DE RETURN ICI ! Un pyqtSlot ne doit généralement pas retourner de valeur
     
-        
     
-    
-    # --- Méthode principale de requête ---
     @pyqtSlot(str, int, result=str)
     def query(self, command_string, timeout_ms = -1): 
-        """
-        Envoie une commande à l'appareil et attend une réponse.
-        Bloque le thread du SerialWorker pendant l'attente (pas l'UI).
-        """
         if not self._is_open:
             self.error_occurred.emit("Impossible d'effectuer la requête: le port n'est pas ouvert.")
             return ""
@@ -187,20 +179,14 @@ class SerialWorker(QObject):
             
         self._query_waiting_for_response = True
         self._query_data_buffer = "" # Réinitialise le buffer pour la nouvelle requête
-
         # Envoie la commande
         self._write_request.emit((command_string + "\n").encode('ascii'))
-
         # Crée et exécute une boucle d'événements pour attendre la réponse
-        self._query_event_loop = QEventLoop()
-        
-        self._query_timeout_timer.start(actual_timeout) 
-        
+        self._query_event_loop = QEventLoop()  
+        self._query_timeout_timer.start(actual_timeout)   
         self._query_event_loop.exec_() # Bloque le thread du worker ici
-
         # Nettoyage après la fin de la boucle (timeout ou réponse reçue)
         self._query_event_loop = None # Libère la référence à la boucle
-        
         self._query_waiting_for_response = False 
         return self._query_data_buffer # Retourne ce qui a été stocké dans le buffer
 
@@ -209,13 +195,13 @@ class SerialWorker(QObject):
         """Envoie une commande textuelle sans attendre de réponse immédiate."""
         self._write_request.emit((command_string + "\n").encode('ascii'))
 
+
     def request_idn(self):
         """Demande l'identification de l'appareil et renvoie la réponse."""
         return self.query("*IDN?")
     
     
-    def request_status(self):
-        """Demande le statut de l'appareil et renvoie la réponse."""        
+    def request_status(self):        
         s = self.query("STATUS?")
         if (s == "\12" or s== "↕" or s==""):
             statut = "OCP OFF, C.C OFF, C.V OFF, LOCK ON/OFF"
@@ -230,12 +216,12 @@ class SerialWorker(QObject):
         else:
             statut = "Statut non réferencé ou alors résistance exacte"
         return statut
-        
-
+    
 
     def set_voltage(self, voltage):
         """Définit la tension de sortie de l'alimentation."""
         self.send_command(f"VSET1:{voltage}")
+
 
     def get_voltage(self):
         responsev = float(self.query("VOUT1?"))
@@ -251,8 +237,10 @@ class SerialWorker(QObject):
             self.error_occurred.emit(f"Impossible de parser la tension de: '{responsev}'")
             return float('nan')
 
+
     def set_ampere(self, ampere):
         self.send_command(f"ISET1:{ampere}")
+
 
     def get_current(self):
         #Demande le courant de sortie actuel et renvoie la valeur.
@@ -269,24 +257,24 @@ class SerialWorker(QObject):
             self.error_occurred.emit(f"Impossible de parser le courant de: '{responsec}'")
             return float('nan')
 
+
     def _set_output(self, state):
         """Active (1) ou désactive (0) la sortie de l'alimentation."""
         self.send_command(f"OUT{int(state)}")
+        
         
     def _set_ocp(self, state):
         # si ocp acitf = 1 ou inactif = 0
         self.send_command(f"OCP{int(state)}")
         
+        
     @pyqtSlot()
     def _read_mesures(self):
         if not self._is_open:
-            self.error_occurred.emit("Port non ouvert pour la lecture des données.")
-            
+            self.error_occurred.emit("Port non ouvert pour la lecture des données.")  
             return
-        
         TensionValue = self.get_voltage() # Appelle méthode get_voltage qui utilise query
-        CurrentValue = self.get_current() # Appelle méthode get_current qui utilise query
-        
+        CurrentValue = self.get_current() # Appelle méthode get_current qui utilise query     
         self.table_mesures_ready.emit([TensionValue, CurrentValue])
         
         
@@ -295,10 +283,11 @@ class SerialWorker(QObject):
         self.send_command(f"LOCK{int(state)}")
         
         
-        
     def _remise_zero(self):
             self.send_command("ISET1:0")
             self.send_command("VSET1:0")
+            
+            
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     """
@@ -309,15 +298,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     open_port_signal = pyqtSignal(str, int)
     close_port_signal = pyqtSignal()
     start_read_mesures_request = pyqtSignal()
-
     #pour le timer :
     start_timer_read_signal = pyqtSignal(int) # int = intervalle en ms
     stop_timer_read_signal = pyqtSignal()
-    
     set_default_query_timeout_signal = pyqtSignal(int)
-    
-    
-    
+
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -325,14 +310,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.thread = QThread()
         self.worker = SerialWorker()
         self.worker.moveToThread(self.thread) # IMPORTANT: Déplace le worker vers le nouveau thread
-
-        # self.plot_widget = pg.PlotWidget()
-        self.statusbar.showMessage("tt")
         
         self.console.setReadOnly(True)
         self.entreeCommande.setPlaceholderText("Entrez une commande SCPI (ex: VSET1:5)")
         self.entreeCommande.returnPressed.connect(self.send_custom_command)
 
+        #Liason entre les boutons et leurs fonctions
         self.btnOn.clicked.connect(self.info_port_connection)
         self.btnOff.clicked.connect(self.stop_connection)
         self.btnCommencer.clicked.connect(self.TimerStartMesure)
@@ -340,7 +323,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.buttonLOCK.clicked.connect(self.LOCK_mode)
         self.indiceOut.clicked.connect(self.Output_mode)
 
-       
+        #Change les pas pour changer les valeurs de l'appareil
         self.ChangeSingleStepVoltage.valueChanged.connect(self.spinVoltage.setSingleStep)
         self.ChangeSingleStepAmpere.valueChanged.connect(self.spinAmpere.setSingleStep)
         
@@ -352,19 +335,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnReiniGra.clicked.connect(self.reiniGraphique)
         self.btnReiniDonnees.clicked.connect(self.reiniTab)
         self.btnEnregistrer.clicked.connect(self.enregTab) #tableau des données
+        
         # self.btnEnregistrerGraph.clicked.connect(self.enregGraph) #enregistre graphe
         self.btnReiniTout.clicked.connect(self.reiniAll)
         
-        # layout.addLayout(btn_layout)
-        
+        #Soucis de répetitions des consol log
         self.worker.table_mesures_ready.connect(self.tableau)
-        self.worker.table_mesures_ready.connect(self.updateValue)
-
+        self.worker.table_mesures_ready.connect(self.updateValue) 
+        self.worker.table_mesures_ready.connect(self.updateStatus)# a enlever des que connecter au worker
+        
+        #Création des tableaux
         self.Temps = []
         self.Tension = []
         self.Current=[]
+        
+        #Variable pour garder la position dans un tableau
         self.savetime = 0
+        
+        #initialisation du timer
         self.timerMesure = QTimer()
+        
+        #variable d'aquisition pour servir d'indicateur aux fonctions qui nécessite un signal pour se connecter au timer
         self.aquisition = False
         
         # Indice de couleur pour les courbes
@@ -388,7 +379,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.TabTension.setLabel('bottom','Temps (s)', color ='black')
         self.TabTension.showGrid(x = True, y = True, alpha = 0.3)        
 
-
         # Connecte les signaux de l'UI au worker
         self.open_port_signal.connect(self.worker.open_port)
         self.close_port_signal.connect(self.worker.close_port)
@@ -398,9 +388,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # boutons pour la console et les lignes de commandes :
         self.btn_idn.clicked.connect(self.on_request_idn_clicked)
-        self.btn_status.clicked.connect(self.on_request_status_clicked)
-            
-            
+        self.btn_status.clicked.connect(self.on_request_status_clicked)                   
         self.btn_preset_idn.clicked.connect(self.pre_commande_idn)
         self.btn_preset_get_ampere.clicked.connect(self.pre_commande_outi)
         self.btn_preset_get_voltage.clicked.connect(self.pre_commande_outv)
@@ -410,20 +398,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btn_preset_ocp.clicked.connect(self.pre_commande_ocp)        
         self.btn_preset_status.clicked.connect(self.pre_commande_status)        
         self.btn_preset_out.clicked.connect(self.pre_commande_out)
+        #╚Pour
 
         # Connecte les signaux du worker à l'UI
-        #self.worker.data_received.connect(self.log_data_received) # Pour le logging générique
+        self.worker.data_received.connect(self.log_data_received) # Pour le logging générique
         self.worker.error_occurred.connect(self.log_error)
         # self.worker.port_status.connect(self.log_port_status)
         # Démarre le thread (le worker ne fera rien tant qu'il n'est pas appelé via ses slots)
         self.thread.start()
         self.console.append("Application démarrée. Thread worker actif.")
-        
+        self.statusbar.showMessage("Application démarrée. Thread worker actif.")
        
         self.info_port_connection() #Je lance automatiquement à l'init la connexion par ce que jtrouve ca nul
-
-
-
 
     def info_port_connection(self):
         port = self.spinBox_COM.value()
@@ -435,6 +421,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         num_port = va
         self.open_port_signal.emit(f"COM{num_port}", 9600)
         self.console.append("Statut: Connexion en cours...")
+        self.statusbar.showMessage("Statut: Connexion en cours...")
         self.OCP_mode()
         self.Output_mode()
         self.LOCK_mode()
@@ -451,13 +438,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         self.timerMesure.timeout.connect(self.start_read_mesures_request.emit)
         self.timerMesure.start(self.pasMesures.value())
-
+        
 
     def stop_connection(self):
         """Demande au worker de fermer le port."""
         self.close_port_signal.emit()
         self.console.append("Statut: Deconnexion en cours...")
-
+        self.statusbar.showMessage("Statut: Deconnexion en cours...")
 
     @pyqtSlot(str)
     def log_data_received(self, data):
@@ -506,6 +493,34 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.nbRealVoltage.display(self.TensionValue)
         self.nbRealAmpere.display(self.CurrentValue)
         
+        
+    def updateStatus(self): #à mettre dnas le worker
+        s = self.worker.query("STATUS?")
+        if (s == "\12" or s== "↕" or s==""):
+            self.led_ocp.setState(2)
+            self.led_cc.setState(1)
+            self.led_cv.setState(1)
+            
+        elif (s == "S"):
+            self.led_ocp.setState(2)
+            self.led_cc.setState(2)
+            self.led_cv.setState(0)
+            
+        elif (s=="R"):
+            self.led_ocp.setState(0)
+            self.led_cc.setState(0)
+            self.led_cv.setState(2)
+            
+        elif (s == "2"):
+            self.led_ocp.setState(0)
+            self.led_cc.setState(1)
+            self.led_cv.setState(1)
+            
+        elif (s == "s"):
+            self.led_ocp.setState(0)
+            self.led_cc.setState(2)
+            self.led_cv.setState(0)
+        
     def pre_commande_idn(self):
         self.entreeCommande.setText("*IDN?")
         
@@ -534,7 +549,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.entreeCommande.setText("OUT'Allumer = 1 Eteint = 0'")  
         
         
-        
     @pyqtSlot(bool)
     def OCP_mode(self):
         if self.buttonOCP.isChecked():
@@ -543,16 +557,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.worker._set_ocp(0)
             self.led_ocp.setState(2)
-            
+
     @pyqtSlot(bool)
     def LOCK_mode(self):
         if self.buttonLOCK.isChecked():
             self.worker._set_lock(1)
             self.led_lock.setState(0)
         else:
-            self.worker._set_lock(0)
-            self.led_lock.setState(2)
-            
+            self.worker._set_lock(0)          
+            self.led_lock.setState(4)
             
     @pyqtSlot(bool)
     def Output_mode(self):
@@ -563,9 +576,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.worker._set_output(0)
             self.led_pn.setState(2)
             
-     
     def resdonnees(self):
         self.Temps, self.Tension, self.Current=[],[],[]
+        
         
     def TimerStop(self):
         self.timerMesure.stop()
@@ -599,8 +612,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             
             else:
                 self.Temps.append(0)
-            
-            
+                     
             # Si on est en mode simu, on ajoute des points aléatoires
             if(self.checkBoxSimu.isChecked()):
                 self.TensionValue = (random.uniform(0, 2) + 29)
@@ -647,7 +659,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if self.btnCommencer.text() == "Commencer l'enregistrement":
                 self.console.append("Début de l'enregistrement des mesures")
                 self.btnCommencer.setText('Pause')
-                self.resdonnees()
                 self.aquisition = True
 
             elif self.btnCommencer.text() == "Continuer":
@@ -655,9 +666,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.btnCommencer.setText('Pause')
                 self.aquisition = True
                 
-
-
-            # --- Cette ligne est maintenant placée ici, après la déconnexion ---
+            # --- Cette ligne est maintenant placée ici, après la déconnexion --- Mais le systeme de conexxion deconnexion est placer plus haut pour gerer le timer 
             # self.timerMesure.timeout.connect(self.start_read_mesures_request.emit)
             # self.timerMesure.start(self.pasMesures.value())
 
@@ -676,24 +685,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.Donnees.removeColumn(0)            
         self.row = 0
         
-
-        
         
     def reiniGraphique(self):
         self.savetime = self.Temps[-1]
         self.resdonnees()
         self.TabTension.clear()
 
-        
-        
+             
     def reiniAll(self):
-        self.reiniGraphique() # Bien garder le reiniGraphique avant le reini tableau pour que self.Temps[-1] ne soie pas effacer par le resdonnees() de reini tab
-        self.reiniTab()           
+        self.resdonnees()
+        self.TabTension.clear() # ne pas mettre directement self.reiniGraphique() car on souhaite repartire de 0     
         self.btnReiniDonnees.setEnabled(False)
         self.btnEnregistrer.setEnabled(False)
         self.btnEnregistrerGraph.setEnabled(False)
         self.btnReiniTout.setEnabled(False)
         self.btnReiniGra.setEnabled(False)
+        self.btnCommencer.setText("Commencer l'enregistrement")
         
     
     def enregTab(self):
@@ -743,11 +750,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
            return # Arrête la fonction si l'enregistrement principal échoue
        
         
-
 #    def enregGraph(self):
-
-        
-                    
+    
 
     def ChangeMode(self, checkState):
         info_spinbox = (checkState == Qt.Checked)

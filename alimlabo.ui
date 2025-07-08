@@ -14,7 +14,7 @@
    <string>MainWindow</string>
   </property>
   <property name="toolTip">
-   <string>Mode Tension Constante</string>
+   <string/>
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="enabled">
@@ -285,60 +285,6 @@
     </property>
     <property name="text">
      <string>Enregistrer</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_6">
-    <property name="geometry">
-     <rect>
-      <x>1350</x>
-      <y>640</y>
-      <width>240</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-      <horstretch>0</horstretch>
-      <verstretch>0</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="minimumSize">
-     <size>
-      <width>240</width>
-      <height>20</height>
-     </size>
-    </property>
-    <property name="maximumSize">
-     <size>
-      <width>200</width>
-      <height>20</height>
-     </size>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>12</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Plus de donnees :</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="pushButton_3">
-    <property name="enabled">
-     <bool>false</bool>
-    </property>
-    <property name="geometry">
-     <rect>
-      <x>1350</x>
-      <y>680</y>
-      <width>171</width>
-      <height>81</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Duree surtension/soustension</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_7">
@@ -626,7 +572,7 @@
     <property name="geometry">
      <rect>
       <x>730</x>
-      <y>930</y>
+      <y>920</y>
       <width>571</width>
       <height>20</height>
      </rect>
@@ -648,7 +594,7 @@
     <property name="geometry">
      <rect>
       <x>730</x>
-      <y>700</y>
+      <y>690</y>
       <width>571</width>
       <height>231</height>
      </rect>
@@ -772,7 +718,7 @@
     <property name="geometry">
      <rect>
       <x>460</x>
-      <y>790</y>
+      <y>780</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -928,6 +874,9 @@
       <bold>true</bold>
      </font>
     </property>
+    <property name="toolTip">
+     <string>Tableau donnees</string>
+    </property>
     <property name="text">
      <string>Tableau donnees :</string>
     </property>
@@ -936,7 +885,7 @@
     <property name="geometry">
      <rect>
       <x>460</x>
-      <y>760</y>
+      <y>750</y>
       <width>240</width>
       <height>20</height>
      </rect>
@@ -977,7 +926,7 @@
     <property name="geometry">
      <rect>
       <x>540</x>
-      <y>890</y>
+      <y>880</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -993,7 +942,7 @@
     <property name="geometry">
      <rect>
       <x>540</x>
-      <y>920</y>
+      <y>910</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -1009,7 +958,7 @@
     <property name="geometry">
      <rect>
       <x>460</x>
-      <y>890</y>
+      <y>880</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -1025,7 +974,7 @@
     <property name="geometry">
      <rect>
       <x>460</x>
-      <y>860</y>
+      <y>850</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -1041,7 +990,7 @@
     <property name="geometry">
      <rect>
       <x>460</x>
-      <y>920</y>
+      <y>910</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -1057,7 +1006,7 @@
     <property name="geometry">
      <rect>
       <x>540</x>
-      <y>860</y>
+      <y>850</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -1073,7 +1022,7 @@
     <property name="geometry">
      <rect>
       <x>620</x>
-      <y>920</y>
+      <y>910</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -1089,7 +1038,7 @@
     <property name="geometry">
      <rect>
       <x>620</x>
-      <y>890</y>
+      <y>880</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -1105,7 +1054,7 @@
     <property name="geometry">
      <rect>
       <x>620</x>
-      <y>860</y>
+      <y>850</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -1121,7 +1070,7 @@
     <property name="geometry">
      <rect>
       <x>460</x>
-      <y>830</y>
+      <y>820</y>
       <width>240</width>
       <height>20</height>
      </rect>
@@ -1162,7 +1111,7 @@
     <property name="geometry">
      <rect>
       <x>540</x>
-      <y>790</y>
+      <y>780</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -1522,6 +1471,19 @@
       </widget>
      </item>
     </layout>
+   </widget>
+   <widget class="QPushButton" name="pushButton">
+    <property name="geometry">
+     <rect>
+      <x>1300</x>
+      <y>920</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Envoyer</string>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

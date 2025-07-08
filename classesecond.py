@@ -11,20 +11,15 @@ class PyLedLabel(QLabel):
     StateOkBlue = 1
     StateWarning = 2
     StateError = 3
-    StatePortPActif = 4
-    StatePortNActif = 5
-    StatePortGNDActif = 6    
- 
+    StateLock = 4
+
     # Constantes pour la taille et les feuilles de style
     _SIZE = 30
     _greenSS = f"color: white;border-radius: {_SIZE/2};background-color: qlineargradient(spread:pad, x1:0.145, y1:0.16, x2:1, y2:1, stop:0 rgba(20, 252, 7, 255), stop:1 rgba(25, 134, 5, 255));"
     _redSS = f"color: white;border-radius: {_SIZE/2};background-color: qlineargradient(spread:pad, x1:0.145, y1:0.16, x2:0.92, y2:0.988636, stop:0 rgba(255, 12, 12, 255), stop:0.869347 rgba(103, 0, 0, 255));"
     _orangeSS = f"color: white;border-radius: {_SIZE/2};background-color: qlineargradient(spread:pad, x1:0.232, y1:0.272, x2:0.98, y2:0.959773, stop:0 rgba(255, 113, 4, 255), stop:1 rgba(91, 41, 7, 255));"
     _blueSS = f"color: white;border-radius: {_SIZE/2};background-color: qlineargradient(spread:pad, x1:0.04, y1:0.0565909, x2:0.799, y2:0.795, stop:0 rgba(203, 220, 255, 255), stop:0.41206 rgba(0, 115, 255, 255), stop:1 rgba(0, 49, 109, 255));"
-    _redP = f"color: red;border-width: 2px ;border-radius: {_SIZE/2};background-color: qlineargradient(spread:pad, x1:0.145, y1:0.16, x2:0.92, y2:0.988636, stop:0 rgba(0, 0, 0, 0), stop:0.869347 rgba(255, 255,255, 255));"
-    _blackN = f"color: black;border-width: 2px ;border-radius: {_SIZE/2};background-color: qlineargradient(spread:pad, x1:0.145, y1:0.16, x2:0.92, y2:0.988636, stop:0 rgba(0, 0, 0, 0), stop:0.869347 rgba(255, 255,255, 255));"
-    _gdnA = f"color: green;border-width: 2px ;border-radius: {_SIZE/2};background-color: qlineargradient(spread:pad, x1:0.145, y1:0.16, x2:0.92, y2:0.988636, stop:0 rgba(0, 0, 0, 0), stop:0.869347 rgba(255, 255,255, 255));"
-    
+    _dark_grey_SS = f"color: white;border-radius: {_SIZE/2};background-color: qlineargradient(spread:pad, x1:0.04, y1:0.0565909, x2:0.799, y2:0.795, stop:0 rgba(100, 100, 100, 255), stop:0.41206 rgba(50, 50, 50, 255), stop:1 rgba(20, 20, 20, 255));"
     
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
@@ -47,12 +42,8 @@ class PyLedLabel(QLabel):
             self.setStyleSheet(self._redSS)
         elif state == self.StateOkBlue:
             self.setStyleSheet(self._blueSS)
-        elif state == self.StatePortPActif:
-            self.setStyleSheet(self._redP)
-        elif state == self.StatePortNActif:
-            self.setStyleSheet(self._blackN)
-        elif state == self.StatePortGNDActif:
-            self.setStyleSheet(self._gdnA)
+        elif state == self.StateLock:
+            self.setStyleSheet(self._dark_grey_SS)
         else:
             # Gérer les cas inattendus ou définir un état par défaut
             self.setStyleSheet(self._blueSS)
