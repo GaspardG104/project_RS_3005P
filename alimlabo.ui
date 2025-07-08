@@ -1472,7 +1472,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="envoyerCommandes">
     <property name="geometry">
      <rect>
       <x>1300</x>
@@ -1483,6 +1483,19 @@
     </property>
     <property name="text">
      <string>Envoyer</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btn_effaceHistorique">
+    <property name="geometry">
+     <rect>
+      <x>1300</x>
+      <y>890</y>
+      <width>101</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Effacer historique</string>
     </property>
    </widget>
   </widget>
@@ -1740,6 +1753,22 @@
     <hint type="destinationlabel">
      <x>203</x>
      <y>335</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btn_effaceHistorique</sender>
+   <signal>clicked()</signal>
+   <receiver>console</receiver>
+   <slot>clear()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1336</x>
+     <y>919</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1129</x>
+     <y>871</y>
     </hint>
    </hints>
   </connection>

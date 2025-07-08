@@ -438,9 +438,12 @@ class Ui_MainWindow(object):
         self.nbRealAmpere.setSegmentStyle(QtWidgets.QLCDNumber.Filled)
         self.nbRealAmpere.setObjectName("nbRealAmpere")
         self.gridLayout_2.addWidget(self.nbRealAmpere, 4, 0, 1, 1)
-        self.pushButton = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton.setGeometry(QtCore.QRect(1300, 920, 75, 23))
-        self.pushButton.setObjectName("pushButton")
+        self.envoyerCommandes = QtWidgets.QPushButton(self.centralwidget)
+        self.envoyerCommandes.setGeometry(QtCore.QRect(1300, 920, 75, 23))
+        self.envoyerCommandes.setObjectName("envoyerCommandes")
+        self.btn_effaceHistorique = QtWidgets.QPushButton(self.centralwidget)
+        self.btn_effaceHistorique.setGeometry(QtCore.QRect(1300, 890, 101, 23))
+        self.btn_effaceHistorique.setObjectName("btn_effaceHistorique")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1797, 21))
@@ -547,6 +550,7 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         self.spinVoltage.valueChanged['double'].connect(self.nbVoltage.display) # type: ignore
         self.spinAmpere.valueChanged['double'].connect(self.nbAmpere.display) # type: ignore
+        self.btn_effaceHistorique.clicked.connect(self.console.clear) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -664,7 +668,8 @@ class Ui_MainWindow(object):
         self.nbRealVoltage.setToolTip(_translate("MainWindow", "Nombre reel de Voltes"))
         self.nbAmpere.setToolTip(_translate("MainWindow", "Nombre d\'Amperes"))
         self.nbRealAmpere.setToolTip(_translate("MainWindow", "Nombre reel d\'Amperes"))
-        self.pushButton.setText(_translate("MainWindow", "Envoyer"))
+        self.envoyerCommandes.setText(_translate("MainWindow", "Envoyer"))
+        self.btn_effaceHistorique.setText(_translate("MainWindow", "Effacer historique"))
         self.menutt.setTitle(_translate("MainWindow", "Fichier"))
         self.menuParam_tres.setTitle(_translate("MainWindow", "Parametres"))
         self.menuLangue.setTitle(_translate("MainWindow", "Langue"))
