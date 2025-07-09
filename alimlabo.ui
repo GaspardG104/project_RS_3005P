@@ -46,7 +46,7 @@
       <normaloff>Simpleicons_Interface_power-symbol-1.svg</normaloff>Simpleicons_Interface_power-symbol-1.svg</iconset>
     </property>
     <property name="shortcut">
-     <string>Ctrl+Return</string>
+     <string>Ctrl+S</string>
     </property>
     <property name="checkable">
      <bool>false</bool>
@@ -246,7 +246,7 @@
      <string>Commencer l'enregistrement</string>
     </property>
     <property name="shortcut">
-     <string>Ctrl+T</string>
+     <string>Ctrl+Return</string>
     </property>
    </widget>
    <widget class="QPushButton" name="btnReiniDonnees">
@@ -556,7 +556,7 @@
       <normaloff>Simpleicons_Interface_power-symbol-1.svg</normaloff>Simpleicons_Interface_power-symbol-1.svg</iconset>
     </property>
     <property name="shortcut">
-     <string>Ctrl+Return</string>
+     <string>Ctrl+O</string>
     </property>
     <property name="checkable">
      <bool>true</bool>
@@ -673,7 +673,7 @@
       <normaloff>Simpleicons_Interface_power-symbol-1.svg</normaloff>Simpleicons_Interface_power-symbol-1.svg</iconset>
     </property>
     <property name="shortcut">
-     <string>Ctrl+Return</string>
+     <string>Ctrl+D</string>
     </property>
     <property name="checkable">
      <bool>false</bool>
@@ -816,6 +816,9 @@
     </property>
     <property name="text">
      <string>Reinitialise</string>
+    </property>
+    <property name="shortcut">
+     <string>Ctrl+Backspace</string>
     </property>
    </widget>
    <widget class="QPushButton" name="btnEnregistrerGraph">

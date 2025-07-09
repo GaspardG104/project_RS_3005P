@@ -64,6 +64,7 @@ class SerialWorker(QObject):
         self._query_timeout_timer.timeout.connect(self._on_query_timeout)
         self._default_query_timeout_ms = 1000
 
+
         
     @pyqtSlot(str, int)
     def open_port(self, port_name, baud_rate):
@@ -127,9 +128,10 @@ class SerialWorker(QObject):
             try:
                 # Décoder les octets reçus en chaîne (souvent 'ascii' ou 'utf-8')
                 decoded_data = data.decode('ascii').strip()
-                if decoded_data:
-                    self.data_received.emit(decoded_data) # Émet pour la console générale
 
+                if decoded_data :
+                    self.data_received.emit(decoded_data)
+                
                     # Si une query est en attente, capturer cette réponse
                     if self._query_waiting_for_response and self._query_event_loop:
                         self._query_data_buffer = decoded_data # Stocke la réponse
@@ -139,7 +141,7 @@ class SerialWorker(QObject):
 
             except UnicodeDecodeError:
                 self.error_occurred.emit(f"Erreur de décodage des données: {data!r}")
-               
+
                 
     @pyqtSlot()
     def _on_query_timeout(self):
@@ -200,7 +202,7 @@ class SerialWorker(QObject):
         return self.query("*IDN?")
     
     
-    def request_status(self):        
+    def _request_status(self):        
         s = self.query("STATUS?")
         if (s == "\12" or s== "↕" or s==""):
             statut = "OCP OFF, C.C OFF, C.V OFF, LOCK ON/OFF, OUT OFF"
@@ -363,7 +365,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         #variable d'aquisition pour servir d'indicateur aux fonctions qui nécessite un signal pour se connecter au timer
         self.aquisition = False
-        self.infosCommandes = True # jai fais cette variable au cas ou c'était une bonne idee pour stoper toute les fino qui sorte dans l'espace de commande
+        self.last_data_received = None# jai fais cette variable au cas ou c'était une bonne idee pour stoper toute les infos qui sorte dans l'espace de commande
         
         # Indice de couleur pour les courbes
         self.color = 0
@@ -454,8 +456,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot(str)
     def log_data_received(self, data):
-        """Affiche les données reçues génériques dans la console."""
+        #Affiche les données reçues génériques dans la console.  
         self.console.append(f"<span style='color: blue;'>Reçu (générique): {data}</span>")
+        
 
     @pyqtSlot(str)
     def log_error(self, error_message):
@@ -490,7 +493,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.worker._is_open:
             self.console.append("Demande du statut envoyée (attente de réponse)...")
             # Appel bloquant pour le worker, non pour l'UI
-            status_response = self.worker.request_status()
+            status_response = self.worker._request_status()
             if not status_response:
                 self.console.append("<span style='color: orange;'>Aucune réponse de statut ou timeout.</span>")
             else:
@@ -694,6 +697,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
              
     def reiniAll(self):    
+        self.aquisition = False
         self.resdonnees()
         self.reiniTab()
         self.TabTension.clear() # ne pas mettre directement self.reiniGraphique() car on souhaite repartire de 0   mais ca marchr pas epiaenhpefoiefhoihioae  
@@ -703,8 +707,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btnReiniTout.setEnabled(False)
         self.btnReiniGra.setEnabled(False)
         self.btnCommencer.setText("Commencer l'enregistrement")
-        
-        
+        self.console.append("Reinitialisation, les mesures sont stopées")
     
     def enregTab(self):
         """
