@@ -14,6 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
+        MainWindow.setEnabled(True)
         MainWindow.resize(1797, 982)
         MainWindow.setToolTip("")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
@@ -78,6 +79,7 @@ class Ui_MainWindow(object):
         self.buttonCV.setCheckable(False)
         self.buttonCV.setObjectName("buttonCV")
         self.btnCommencer = QtWidgets.QPushButton(self.centralwidget)
+        self.btnCommencer.setEnabled(True)
         self.btnCommencer.setGeometry(QtCore.QRect(650, 460, 161, 91))
         self.btnCommencer.setObjectName("btnCommencer")
         self.btnReiniDonnees = QtWidgets.QPushButton(self.centralwidget)

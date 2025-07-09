@@ -283,8 +283,8 @@ class SerialWorker(QObject):
         if not self._is_open:
             self.error_occurred.emit("Port non ouvert pour la lecture des données.")  
             return
-        TensionValue = self.get_voltage() # Appelle méthode get_voltage qui utilise _query
-        CurrentValue = self.get_ampere() # Appelle méthode get_ampere qui utilise _query     
+        TensionValue = self._get_voltage() # Appelle méthode get_voltage qui utilise _query
+        CurrentValue = self._get_ampere() # Appelle méthode get_ampere qui utilise _query     
         self.table_mesures_ready.emit([TensionValue, CurrentValue])
         
         
@@ -726,11 +726,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.console.append("Reinitialisation, les mesures sont stopées")
     
     def enregTab(self):
-        """
-        Pour choisir un dossier d'enregistrement   "test de commit"
-        dir_name = QFileDialog.getExistingDirectory()
-        print(dir_name)
-        """
         # Génère un nom de fichier par défaut avec la date et l'heure actuelles
         default_file_name = "data_" + QDateTime.currentDateTime().toString("yyyy-MM-dd_hh.mm.ss")
 
@@ -749,7 +744,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
        # Le séparateur par défaut est la virgule pour CSV, l'espace pour TXT
         separator = "," if selected_filter == 'Fichier CSV (*.csv)' or file_path.lower().endswith('.csv') else " "
 
-       # --- Partie 1 : Enregistrement des listes self.Temps, self.Tension, self.Current ---
+       #Enregistrement des listes self.Temps, self.Tension, self.Current
         try:
             with open(file_path, "w") as file:
                # Écrit les en-têtes de colonnes
@@ -773,27 +768,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
        
         
     def enregGraph(self):
-            """Enregistre le graphique actuel dans un fichier."""
-            # Ouvrir une boîte de dialogue pour choisir le nom et le format du fichier
-            file_name, _ = QFileDialog.getSaveFileName(
-                self,
-                "Enregistrer le graphique",
-                "", # Répertoire par défaut
-                "Images PNG (*.png);;Images JPG (*.jpg);;Fichiers SVG (*.svg);;Tous les fichiers (*.*)"
-            )
+        # Génère un nom de fichier par défaut avec la date et l'heure actuelles
+        default_file_name = "data_" + QDateTime.currentDateTime().toString("yyyy-MM-dd_hh.mm.ss")
+        # Ouvrir une boîte de dialogue pour choisir le nom et le format du fichier
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Enregistrer le graphique", default_file_name,
+            "Images PNG (*.png);;Images JPG (*.jpg);;Fichiers SVG (*.svg);;Tous les fichiers (*.*)")
     
-            if file_name: # Si l'utilisateur a sélectionné un fichier
-                exporter = pg.exporters.ImageExporter(self.TabTension.plotItem)
-    
-                # Définir la résolution (optionnel, mais utile pour la qualité)
-                # exporter.parameters()['width'] = 800 # Largeur en pixels
-                # exporter.parameters()['height'] = 600 # Hauteur en pixels
-    
-                # Exporter vers le fichier
-                exporter.export(file_name)
-                self.console.append(f"<span style='color: green;'>Graphique enregistré sous : {file_name}</span>")
-            else:
-                self.console.append("<span style='color: orange;'>Enregistrement du graphique annulé.</span>")
+        if file_name: # Si l'utilisateur a sélectionné un fichier
+            exporter = pg.exporters.ImageExporter(self.TabTension.plotItem)
+
+            # Définir la résolution (optionnel, mais utile pour la qualité)
+            # exporter.parameters()['width'] = 800 # Largeur en pixels
+            # exporter.parameters()['height'] = 600 # Hauteur en pixels
+
+            # Exporter vers le fichier
+            exporter.export(file_name)
+            self.console.append(f"<span style='color: green;'>Graphique enregistré sous : {file_name}</span>")
+        else:
+            self.console.append("<span style='color: orange;'>Enregistrement du graphique annulé.</span>")
     
 
     def ChangeMode(self, checkState):
