@@ -20,8 +20,8 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
 
 #Pour enregistrer le graphique mais chepa si jaurais pu faire le tracé des courbes avec ca directemment a voir 
-# import pyqtgraph as pg
-# import pyqtgraph.exporters
+import pyqtgraph as pg
+import pyqtgraph.exporters
 
 import random
 import pathlib
@@ -322,6 +322,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.console.setReadOnly(True)
         self.entreeCommande.setPlaceholderText("Entrez une commande SCPI (ex: VSET1:5)")
         self.entreeCommande.returnPressed.connect(self.send_custom_command)
+              
 
         #Liason entre les boutons et leurs fonctions
         self.btnOn.clicked.connect(self.info_port_connection)
@@ -342,10 +343,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Bouton UI, pas besoin du Worker Thread
         self.btnReiniGra.clicked.connect(self.reiniGraphique)
         self.btnReiniDonnees.clicked.connect(self.reiniTab)
-        self.btnEnregistrer.clicked.connect(self.enregTab) #tableau des données
-        
-        # self.btnEnregistrerGraph.clicked.connect(self.enregGraph) #enregistre graphe
         self.btnReiniTout.clicked.connect(self.reiniAll)
+        
+        self.btnEnregistrer.clicked.connect(self.enregTab) #tableau des données
+        self.btnEnregistrerGraph.clicked.connect(self.enregGraph) #enregistre graphe
+        
         
         #Soucis de répetitions des consol log
         self.worker.table_mesures_ready.connect(self.tableau)
@@ -379,7 +381,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.TabTension.setBackground("w")
         
         # Entête du graphe 
-        self.TabTension.setTitle('Monitoring de la tension', color ='b')
+        self.TabTension.setTitle('Graphique des courbes Volts(V) et Amperes(A) / Temps(s)', color ='b')
         
         # Titre de l'axe vertical
         self.TabTension.setLabel('left','Tension (V) et Courant (A)', color ='black')
@@ -424,18 +426,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def info_port_connection(self):
         port = self.spinBox_COM.value()
         self.start_connection(port)
+        self.console.append("Statut: Connexion en cours...")
+        self.statusbar.showMessage("Statut: Connexion en cours...")
         
         
     def start_connection(self, va :int):
         """Demande au worker d'ouvrir le port."""
         num_port = va
-        self.open_port_signal.emit(f"COM{num_port}", 9600)
-        self.console.append("Statut: Connexion en cours...")
-        self.statusbar.showMessage("Statut: Connexion en cours...")
-        self.OCP_mode()
-        self.Output_mode()
-        self.LOCK_mode()
-        
+        self.open_port_signal.emit(f"COM{num_port}", 9600)      
+
         # Toujours déconnecter avant de (re)connecter pour éviter les connexions multiples
         try:
             self.timerMesure.timeout.disconnect() # Déconnecte TOUS les slots connectés au timeout
@@ -443,10 +442,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         except TypeError:
             # Si aucun slot n'était connecté (premier démarrage par ex.), TypeError est levé, on l'ignore.
             pass
-        
+        self.OCP_mode()
+        self.Output_mode()
+        self.LOCK_mode()        
         self.timerMesure.timeout.connect(self.start_read_mesures_request.emit)
         self.timerMesure.start(self.pasMesures.value())
-
+        self.on_request_idn_clicked()
 
     def stop_connection(self):
         """Demande au worker de fermer le port."""
@@ -538,7 +539,36 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.led_ocp.setState(0)
             self.led_cc.setState(2)
             self.led_cv.setState(0)
-            self.led_pn.setState(0)
+            self.led_pn.setState(0)     
+            
+            
+    @pyqtSlot(bool)
+    def OCP_mode(self):
+        if self.buttonOCP.isChecked():
+            self.worker._set_ocp(1)
+        else:
+            self.worker._set_ocp(0)
+
+
+    @pyqtSlot(bool)
+    def LOCK_mode(self):
+        if self.buttonLOCK.isChecked():
+            self.worker._set_lock(1)
+            self.led_lock.setState(0)
+        else:
+            self.worker._set_lock(0)          
+            self.led_lock.setState(4)
+            
+            
+    @pyqtSlot(bool)
+    def Output_mode(self):
+        if self.indiceOut.isChecked():
+            self.worker._set_output(1)
+        else:
+            self.worker._set_output(0)
+           
+            
+            
         
     def pre_commande_idn(self):
         self.entreeCommande.setText("*IDN?")
@@ -568,32 +598,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.entreeCommande.setText("OUT'Allumer = 1 Eteint = 0'")  
         
         
-    @pyqtSlot(bool)
-    def OCP_mode(self):
-        if self.buttonOCP.isChecked():
-            self.worker._set_ocp(1)
-        else:
-            self.worker._set_ocp(0)
 
-
-    @pyqtSlot(bool)
-    def LOCK_mode(self):
-        if self.buttonLOCK.isChecked():
-            self.worker._set_lock(1)
-            self.led_lock.setState(0)
-        else:
-            self.worker._set_lock(0)          
-            self.led_lock.setState(4)
-            
-            
-    @pyqtSlot(bool)
-    def Output_mode(self):
-        if self.indiceOut.isChecked():
-            self.worker._set_output(1)
-            self.led_pn.setState(0)
-        else:
-            self.worker._set_output(0)
-            self.led_pn.setState(2)
             
     def resdonnees(self):
         self.Temps, self.Tension, self.Current=[],[],[]
@@ -756,7 +761,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
            return # Arrête la fonction si l'enregistrement principal échoue
        
         
-#    def enregGraph(self):
+    def enregGraph(self):
+            """Enregistre le graphique actuel dans un fichier."""
+            # Ouvrir une boîte de dialogue pour choisir le nom et le format du fichier
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Enregistrer le graphique",
+                "", # Répertoire par défaut
+                "Images PNG (*.png);;Images JPG (*.jpg);;Fichiers SVG (*.svg);;Tous les fichiers (*.*)"
+            )
+    
+            if file_name: # Si l'utilisateur a sélectionné un fichier
+                exporter = pg.exporters.ImageExporter(self.TabTension.plotItem)
+    
+                # Définir la résolution (optionnel, mais utile pour la qualité)
+                # exporter.parameters()['width'] = 800 # Largeur en pixels
+                # exporter.parameters()['height'] = 600 # Hauteur en pixels
+    
+                # Exporter vers le fichier
+                exporter.export(file_name)
+                self.console.append(f"<span style='color: green;'>Graphique enregistré sous : {file_name}</span>")
+            else:
+                self.console.append("<span style='color: orange;'>Enregistrement du graphique annulé.</span>")
     
 
     def ChangeMode(self, checkState):
