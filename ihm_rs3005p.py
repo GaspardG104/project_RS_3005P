@@ -134,7 +134,7 @@ class SerialWorker(QObject):
 
                 if decoded_data :
                     
-                    # self.data_received.emit(decoded_data)
+                    self.data_received.emit(decoded_data)
                 
                     # Si une _query est en attente, capturer cette réponse
                     if self._query_waiting_for_response and self._query_event_loop:
@@ -476,7 +476,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def log_data_received(self, data):
         #Affiche les données reçues génériques dans la console.  
         self.console.append(f"<span style='color: blue;'>Reçu (générique): {data}</span>")
-        
+        self.statusbar.showMessage(data)
 
     @pyqtSlot(str)
     def log_error(self, error_message):
@@ -631,6 +631,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.timerMesure.stop()
         self.timerMesure.start(valeur)
 
+    def mode_simu(self):
+        self.TensionValue = (random.uniform(0, 2) + 29)
+        self.CurrentValue = (random.uniform(0, 2) + 4)
  
     def tableau(self, data_row_from_worker):   
         if self.aquisition is False:
@@ -647,8 +650,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                      
             # Si on est en mode simu, on ajoute des points aléatoires
             if(self.checkBoxSimu.isChecked()):
-                self.TensionValue = (random.uniform(0, 2) + 29)
-                self.CurrentValue = (random.uniform(0, 2) + 4)
+                self.mode_simu()
             
             else:                     
             # Récuperation des tableaux :            
@@ -698,16 +700,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
     def reiniTab(self):
-        self.resdonnees()
         while self.Donnees.rowCount() > 0:
             self.Donnees.removeRow(0)
         while self.Donnees.columnCount() > 3:
             self.Donnees.removeColumn(0)            
         self.row = 0
-        
-        
+        self.resdonnees()
+        # dernier_temps_trace = None
+        # derniere_tension_tracee = None 
+        # derniere_current_tracee = None
+        # if self.Temps and self.Tension and self.Current: 
+        #     dernier_temps_trace = self.Temps[-1]
+        #     derniere_tension_tracee = self.Tension[-1] 
+        #     derniere_current_tracee = self.Current[-1] 
+    
+        # self.resdonnees()
+    
+        # if dernier_temps_trace is not None:
+        #     self.Temps.append(dernier_temps_trace)
+        #     if derniere_tension_tracee is not None: 
+        #         self.Tension.append(derniere_tension_tracee)
+        #         if derniere_current_tracee is not None:
+        #             self.Tension.append(derniere_current_tracee)
+    
+        # while self.Donnees.rowCount() > 0:
+        #     self.Donnees.removeRow(0)
+        # while self.Donnees.columnCount() > 3:
+        #     self.Donnees.removeColumn(0)        
+        # self.row = 0
+            
     def reiniGraphique(self):
-        self.savetime = self.Temps[-1]
+        self.savetime = self.Temps[-1] if self.Temps else None
         self.resdonnees()
         self.TabTension.clear()
 
