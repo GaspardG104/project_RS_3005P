@@ -44,7 +44,7 @@ class SerialWorker(QObject):
     _write_request = pyqtSignal(bytes)
     # Signal interne pour les requêtes, utilisé par la fonction _query
     _query_response_received = pyqtSignal(str)
-    
+    signal_simu_received = pyqtSignal(bool)
     table_mesures_ready = pyqtSignal(list)
     #signal pour change la valeurs de temps de latence de _query
     default_query_timeout_updated = pyqtSignal(int)
@@ -65,39 +65,44 @@ class SerialWorker(QObject):
         self._query_timeout_timer.setSingleShot(True)
         self._query_timeout_timer.timeout.connect(self._on_query_timeout)
         self._default_query_timeout_ms = 1000
-
+        self._simulation_state = False
+        self.signal_simu_received.connect(self._simulation)
     
     @pyqtSlot(str, int)
     def _open_port(self, port_name, baud_rate):
-        
-        """Ouvre le port série avec les paramètres spécifiés."""
-        if self._serial_port.isOpen():
-            self._serial_port.close()
-
-        self._serial_port.setPortName(port_name)
-        self._serial_port.setBaudRate(baud_rate)
-        self._serial_port.setDataBits(QSerialPort.Data8)
-        self._serial_port.setParity(QSerialPort.NoParity)
-        self._serial_port.setStopBits(QSerialPort.OneStop)
-        self._serial_port.setFlowControl(QSerialPort.NoFlowControl)
-
-        if self._serial_port.open(QIODevice.ReadWrite):
-            self._is_open = True
-            self.port_status.emit(True, f"Port '{port_name}' ouvert à {baud_rate} bauds.")
-            self.data_received.emit("Port ouvert !")
-            self._remise_zero()  
+        if self._simulation_state:
+            self.port_status.emit(f"Connexion au port simulé.")
+        else:
+            """Ouvre le port série avec les paramètres spécifiés."""
+            if self._serial_port.isOpen():
+                self._serial_port.close()
+    
+            self._serial_port.setPortName(port_name)
+            self._serial_port.setBaudRate(baud_rate)
+            self._serial_port.setDataBits(QSerialPort.Data8)
+            self._serial_port.setParity(QSerialPort.NoParity)
+            self._serial_port.setStopBits(QSerialPort.OneStop)
+            self._serial_port.setFlowControl(QSerialPort.NoFlowControl)
+    
+            if self._serial_port.open(QIODevice.ReadWrite):
+                self._is_open = True
+                self.port_status.emit(True, f"Port '{port_name}' ouvert à {baud_rate} bauds.")
+                self.data_received.emit("Port ouvert !")
+                self._remise_zero()  
 
             
-        else:
-            self._is_open = False
-            error_msg = self._serial_port.errorString()
-            self.port_status.emit(False, f"Erreur d'ouverture de '{port_name}': {error_msg}")
-            self.data_received.emit("Erreur d'ouverture ")
-            self.error_occurred.emit(error_msg)
+            else:
+                self._is_open = False
+                error_msg = self._serial_port.errorString()
+                self.port_status.emit(False, f"Erreur d'ouverture de '{port_name}': {error_msg}")
+                self.data_received.emit("Erreur d'ouverture ")
+                self.error_occurred.emit(error_msg)
 
     @pyqtSlot()
     def _close_port(self):
         """Ferme le port série."""
+        if self._simulation_state:
+            self.port_status.emit(f"Fermeture du port simulé.")
         if self._serial_port.isOpen():
             self._remise_zero()
             self._serial_port.close()
@@ -278,14 +283,22 @@ class SerialWorker(QObject):
         self._send_command(f"OCP{int(state)}")
         
         
+    def _simulation(self, state):
+        self._simulation_state = state
+        self.error_occurred.emit("Etat simulation :{}".format(state)) 
+
+        
     @pyqtSlot()
     def _read_mesures(self):
-        if not self._is_open:
-            self.error_occurred.emit("Port non ouvert pour la lecture des données.")  
-            return
-        TensionValue = self._get_voltage() # Appelle méthode get_voltage qui utilise _query
-        CurrentValue = self._get_ampere() # Appelle méthode get_ampere qui utilise _query     
-        self.table_mesures_ready.emit([TensionValue, CurrentValue])
+        if self._simulation_state:
+            self.table_mesures_ready.emit([(random.uniform(0, 2) + 29), (random.uniform(0, 2) + 4)])
+        else:
+            if not self._is_open:
+                self.error_occurred.emit("Port non ouvert pour la lecture des données.")             
+            else:                
+                TensionValue = self._get_voltage() # Appelle méthode get_voltage qui utilise _query
+                CurrentValue = self._get_ampere() # Appelle méthode get_ampere qui utilise _query     
+                self.table_mesures_ready.emit([TensionValue, CurrentValue])
         
         
     def _set_lock(self, state):
@@ -308,6 +321,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     open_port_signal = pyqtSignal(str, int)
     close_port_signal = pyqtSignal()
     start_read_mesures_request = pyqtSignal()
+    simulation_signal = pyqtSignal(bool)
     #pour le timer :
     start_timer_read_signal = pyqtSignal(int) # int = intervalle en ms
     stop_timer_read_signal = pyqtSignal()
@@ -335,6 +349,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.buttonOCP.clicked.connect(self.OCP_mode)
         self.buttonLOCK.clicked.connect(self.LOCK_mode)
         self.indiceOut.clicked.connect(self.Output_mode)
+        self.checkBoxSimu.stateChanged.connect(self.mode_simu)
 
         #Change les pas pour changer les valeurs de l'appareil
         self.ChangeSingleStepVoltage.valueChanged.connect(self.spinVoltage.setSingleStep)
@@ -399,6 +414,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.close_port_signal.connect(self.worker._close_port)
         self.start_read_mesures_request.connect(self.worker._read_mesures)
         self.demande_update_status_leds.connect(self.worker._status_leds)
+        self.simulation_signal.connect(self.worker.signal_simu_received)
         
         self.pasMesures.valueChanged.connect(self.changeTimer)
         
@@ -631,10 +647,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.timerMesure.stop()
         self.timerMesure.start(valeur)
 
-    def mode_simu(self):
-        self.TensionValue = (random.uniform(0, 2) + 29)
-        self.CurrentValue = (random.uniform(0, 2) + 4)
- 
+    def mode_simu(self, state):
+        self.simulation_signal.emit(state)
+        self.console.append("checkboxsimu {}".format(state))
+        # self.TensionValue = (random.uniform(0, 2) + 29)
+        # self.CurrentValue = (random.uniform(0, 2) + 4)
+        
+        
     def tableau(self, data_row_from_worker):   
         if self.aquisition is False:
             return
@@ -647,14 +666,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             
             else:
                 self.Temps.append(0)
-                     
-            # Si on est en mode simu, on ajoute des points aléatoires
-            if(self.checkBoxSimu.isChecked()):
-                self.mode_simu()
-            
-            else:                     
+                         
             # Récuperation des tableaux :            
-                self.TensionValue, self.CurrentValue = data_row_from_worker
+            self.TensionValue, self.CurrentValue = data_row_from_worker
+            
             
             self.Tension.append(self.TensionValue)
             self.Current.append(self.CurrentValue)
