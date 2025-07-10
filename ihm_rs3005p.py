@@ -285,13 +285,13 @@ class SerialWorker(QObject):
         
     def _simulation(self, state):
         self._simulation_state = state
-        self.error_occurred.emit("Etat simulation :{}".format(state)) 
+        self.data_received.emit("Etat simulation :{}".format(state)) 
 
         
     @pyqtSlot()
     def _read_mesures(self):
         if self._simulation_state:
-            self.table_mesures_ready.emit([(random.uniform(0, 2) + 29), (random.uniform(0, 2) + 4)])
+            self.table_mesures_ready.emit([(random.uniform(0, 30)), (random.uniform(0, 5))])
         else:
             if not self._is_open:
                 self.error_occurred.emit("Port non ouvert pour la lecture des données.")             
@@ -341,7 +341,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.entreeCommande.setPlaceholderText("Entrez une commande SCPI (ex: VSET1:5)")
         self.entreeCommande.returnPressed.connect(self.send_custom_command)
               
-
+        #connexion des bouton de menu bar
+        self.connectSignalsSlots()
+        
         #Liason entre les boutons et leurs fonctions
         self.btnOn.clicked.connect(self.info_port_connection)
         self.btnOff.clicked.connect(self.stop_connection)
@@ -397,17 +399,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.row = 0
 
         # Couleur du fond du graphe
-        self.TabTension.setBackground("w")
+        self.graphique.setBackground("w")
         
         # Entête du graphe 
-        self.TabTension.setTitle('Graphique des courbes Volts(V) et Amperes(A) / Temps(s)', color ='b')
+        self.graphique.setTitle('Graphique des courbes Volts(V) et Amperes(A) / Temps(s)', color ='b')
         
         # Titre de l'axe vertical
-        self.TabTension.setLabel('left','Tension (V) et Courant (A)', color ='black')
+        self.graphique.setLabel('left','Tension (V) et Courant (A)', color ='black')
         
         # Titre de l'axe horizontal
-        self.TabTension.setLabel('bottom','Temps (s)', color ='black')
-        self.TabTension.showGrid(x = True, y = True, alpha = 0.3)        
+        self.graphique.setLabel('bottom','Temps (s)', color ='black')
+        self.graphique.showGrid(x = True, y = True, alpha = 0.3)        
 
         # Connecte les signaux de l'UI au worker
         self.open_port_signal.connect(self.worker._open_port)
@@ -435,17 +437,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btn_preset_status.clicked.connect(self.pre_commande_status)        
         self.btn_preset_out.clicked.connect(self.pre_commande_out)
         self.envoyerCommandes.clicked.connect(self.envoie_commandes)
-
+        
         # Connecte les signaux du worker à l'UI
-        self.worker.data_received.connect(self.log_data_received) # Pour le logging générique
+        self.worker.data_received.connect(self.log_data_received)       
         self.worker.error_occurred.connect(self.log_error)
+        
 
         # Démarre le thread (le worker ne fera rien tant qu'il n'est pas appelé via ses slots)
         self.thread.start()
         self.console.append("Application démarrée. Thread worker actif.")
         self.statusbar.showMessage("Application démarrée. Thread worker actif.")
        
-        self.info_port_connection() #Je lance automatiquement à l'init la connexion par ce que jtrouve ca nul
+        self.info_port_connection() #Je lance automatiquement à l'init la connexion
 
     def info_port_connection(self):
         port = self.spinBox_COM.value()
@@ -490,14 +493,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot(str)
     def log_data_received(self, data):
-        #Affiche les données reçues génériques dans la console.  
-        self.console.append(f"<span style='color: blue;'>Reçu (générique): {data}</span>")
+        if not self.btnDataConsole.isChecked() :
+            self.console.append(f"<span style='color: blue;'>Reçu (générique): {data}</span>")
+            
         self.statusbar.showMessage(data)
 
     @pyqtSlot(str)
     def log_error(self, error_message):
-        """Affiche les messages d'erreur dans la console."""
-        self.console.append(f"<span style='color: red;'>Erreur: {error_message}</span>")
+        if not self.btnErrorConsole.isChecked():
+            self.console.append(f"<span style='color: red;'>Erreur: {error_message}</span>")
+        else:
+            return
 
     def send_custom_command(self):
         """Envoie une commande tapée par l'utilisateur."""
@@ -506,7 +512,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.worker._send_command(command)
             self.console.append(f"<span style='color: green;'>Envoyé: {command}</span>")
             self.entreeCommande.clear()
-
 
     def envoie_commandes(self):
         self.send_custom_command()
@@ -649,10 +654,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def mode_simu(self, state):
         self.simulation_signal.emit(state)
-        self.console.append("checkboxsimu {}".format(state))
-        # self.TensionValue = (random.uniform(0, 2) + 29)
-        # self.CurrentValue = (random.uniform(0, 2) + 4)
-        
+        if state==0:
+            self.console.append("Le mode de simulation est Desactif")
+
+        else:
+            self.console.append("Le mode de simulation est Actif")
         
     def tableau(self, data_row_from_worker):   
         if self.aquisition is False:
@@ -675,9 +681,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.Current.append(self.CurrentValue)
                 
             # Affichage de la courbe
-            self.TabTension.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
-            self.TabTension.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
-            self.TabTension.show()
+            self.graphique.plot(self.Temps, self.Tension, symbolBrush=(self.tab_couleur[0]))
+            self.graphique.plot(self.Temps, self.Current, symbolBrush=(self.tab_couleur[1]))
+            self.graphique.show()
             row = self.Donnees.rowCount()
             if self.row >= row:
                 self.Donnees.insertRow(row)
@@ -721,40 +727,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.Donnees.removeColumn(0)            
         self.row = 0
         self.resdonnees()
-        # dernier_temps_trace = None
-        # derniere_tension_tracee = None 
-        # derniere_current_tracee = None
-        # if self.Temps and self.Tension and self.Current: 
-        #     dernier_temps_trace = self.Temps[-1]
-        #     derniere_tension_tracee = self.Tension[-1] 
-        #     derniere_current_tracee = self.Current[-1] 
-    
-        # self.resdonnees()
-    
-        # if dernier_temps_trace is not None:
-        #     self.Temps.append(dernier_temps_trace)
-        #     if derniere_tension_tracee is not None: 
-        #         self.Tension.append(derniere_tension_tracee)
-        #         if derniere_current_tracee is not None:
-        #             self.Tension.append(derniere_current_tracee)
-    
-        # while self.Donnees.rowCount() > 0:
-        #     self.Donnees.removeRow(0)
-        # while self.Donnees.columnCount() > 3:
-        #     self.Donnees.removeColumn(0)        
-        # self.row = 0
+
             
     def reiniGraphique(self):
         self.savetime = self.Temps[-1] if self.Temps else None
         self.resdonnees()
-        self.TabTension.clear()
+        self.graphique.clear()
 
              
     def reiniAll(self):    
         self.aquisition = False
         self.resdonnees()
         self.reiniTab()
-        self.TabTension.clear() # ne pas mettre directement self.reiniGraphique() car on souhaite repartire de 0   mais ca marchr pas epiaenhpefoiefhoihioae  
+        self.graphique.clear() # ne pas mettre directement self.reiniGraphique() car on souhaite repartire de 0   mais ca marchr pas epiaenhpefoiefhoihioae  
         self.btnReiniDonnees.setEnabled(False)
         self.btnEnregistrer.setEnabled(False)
         self.btnEnregistrerGraph.setEnabled(False)
@@ -815,7 +800,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             "Images PNG (*.png);;Images JPG (*.jpg);;Fichiers SVG (*.svg);;Tous les fichiers (*.*)")
     
         if file_name: # Si l'utilisateur a sélectionné un fichier
-            exporter = pg.exporters.ImageExporter(self.TabTension.plotItem)
+            exporter = pg.exporters.ImageExporter(self.graphique.plotItem)
 
             # Définir la résolution (optionnel, mais utile pour la qualité)
             # exporter.parameters()['width'] = 800 # Largeur en pixels
@@ -827,18 +812,82 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.console.append("<span style='color: orange;'>Enregistrement du graphique annulé.</span>")
     
-
-    def ChangeMode(self, checkState):
-        info_spinbox = (checkState == Qt.Checked)
-        if info_spinbox:
-            self.pasMesures.setMinimum(10)
+    def enregistreTout(self):
+        self.enregGraph()
+        self.enregTab()
+    
+    def afficherConsole(self):
+        if not self.actionConsole_2.isChecked():
+            self.console.hide()
+            self.btnDataConsole.hide()
+            self.entreeCommande.hide()
+            self.commandsSection.hide()
+            self.commandesmessages.hide()
         else:
-            self.pasMesures.setMinimum(500)
-        # Informer le worker du changement de modepour le timer de mesure
-        if self.serial_worker._mesure_timer.isActive():
-            self.start_mesure_timer_request.emit(self.pasMesures.value(), info_spinbox)
+            self.console.show()
+            self.btnDataConsole.show()
+            self.entreeCommande.show()
+            self.commandsSection.show()
+            self.commandesmessages.show()
             
+    def afficherTableau(self):
+        if not self.actionTableau.isChecked():
+            self.Donnees.hide()
+            self.labelTab.hide()
+        else:
+            self.Donnees.show()
+            self.labelTab.show()
             
+    def afficherGraphique(self):
+        if not self.actionGraphique.isChecked():
+            self.graphique.hide()
+            self.labelGraphique.hide()
+            self.btnReiniGra.hide()
+            self.btnEnregistrerGraph.hide()
+        else:
+            self.graphique.show()
+            self.labelGraphique.show()
+            self.btnReiniGra.show()
+            self.btnEnregistrerGraph.show()
+
+    def afficherSimple(self):
+        if not self.actionMode_simple.isChecked():
+            self.actionMode_expert.setChecked(True)
+            self.actionGraphique.setChecked(True)
+            self.actionConsole.setChecked(True)
+            self.actionConsole.setChecked(True)
+            self.graphique.show()
+            self.graphique.show()
+        else:
+            self.actionMode_expert.setChecked(False)
+            self.actionGraphique.setChecked(False)
+            self.actionConsole.setChecked(False)
+            self.actionTableau.setChecked(False)
+            self.btnReiniGra.hide()
+            self.btnReiniGra.hide()
+            self.btnReiniGra.hide()
+
+
+
+
+    def afficherExpert(self):
+        if not self.actionMode_expert.isChecked():
+            self.actionMode_simple.setChecked(True)
+        else:
+            self.actionMode_simple.setChecked(False)
+
+        
+        
+    def connectSignalsSlots(self):
+        self.actionEnregistrer.triggered.connect(self.enregistreTout)
+        self.actionQuitter.triggered.connect(self.close)
+        self.actionConsole_2.triggered.connect(self.afficherConsole)
+        self.actionTableau.triggered.connect(self.afficherTableau)
+        self.actionGraphique.triggered.connect(self.afficherGraphique)
+        self.actionMode_expert.triggered.connect(self.afficherExpert)
+        self.actionMode_simple.triggered.connect(self.afficherSimple)
+        
+
     def closeEvent(self, event):
         """Gère la fermeture de la fenêtre pour arrêter le thread proprement."""
         self.stop_connection() # Demande au worker de fermer le port

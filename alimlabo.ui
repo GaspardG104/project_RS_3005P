@@ -99,7 +99,7 @@
      <string>Graphique :</string>
     </property>
    </widget>
-   <widget class="PlotWidget" name="TabTension" native="true">
+   <widget class="PlotWidget" name="graphique" native="true">
     <property name="geometry">
      <rect>
       <x>670</x>
@@ -282,7 +282,7 @@
      <rect>
       <x>1170</x>
       <y>460</y>
-      <width>91</width>
+      <width>111</width>
       <height>41</height>
      </rect>
     </property>
@@ -290,7 +290,7 @@
      <string>Enregistre le tableau de donnees</string>
     </property>
     <property name="text">
-     <string>Enregistrer</string>
+     <string>Enregistrer tableau</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_7">
@@ -720,22 +720,6 @@
      <string>Deconnecte</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="btn_idn">
-    <property name="geometry">
-     <rect>
-      <x>460</x>
-      <y>780</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Commande pour avoir l'identification de l'appareil</string>
-    </property>
-    <property name="text">
-     <string>IDN</string>
-    </property>
-   </widget>
    <widget class="QDoubleSpinBox" name="ChangeSingleStepVoltage">
     <property name="geometry">
      <rect>
@@ -888,248 +872,6 @@
     </property>
     <property name="text">
      <string>Tableau donnees :</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_8">
-    <property name="geometry">
-     <rect>
-      <x>460</x>
-      <y>750</y>
-      <width>240</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-      <horstretch>0</horstretch>
-      <verstretch>0</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="minimumSize">
-     <size>
-      <width>240</width>
-      <height>20</height>
-     </size>
-    </property>
-    <property name="maximumSize">
-     <size>
-      <width>200</width>
-      <height>20</height>
-     </size>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>12</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="toolTip">
-     <string>Console</string>
-    </property>
-    <property name="text">
-     <string>Console :</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_preset_set_voltage">
-    <property name="geometry">
-     <rect>
-      <x>540</x>
-      <y>880</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Commande pour definir le voltage</string>
-    </property>
-    <property name="text">
-     <string>Set Voltage</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_preset_set_ampere">
-    <property name="geometry">
-     <rect>
-      <x>540</x>
-      <y>910</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Commande pour definir l'Amperage</string>
-    </property>
-    <property name="text">
-     <string>Set Ampere</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_preset_ocp">
-    <property name="geometry">
-     <rect>
-      <x>460</x>
-      <y>880</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Commande du mode de protection contre les surintensite</string>
-    </property>
-    <property name="text">
-     <string>OCP</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_preset_idn">
-    <property name="geometry">
-     <rect>
-      <x>460</x>
-      <y>850</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Commande pour avoir l'identification de l'appareil</string>
-    </property>
-    <property name="text">
-     <string>IDN</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_preset_lock">
-    <property name="geometry">
-     <rect>
-      <x>460</x>
-      <y>910</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Commande pour activer/desactiver le verrouillage du panneau</string>
-    </property>
-    <property name="text">
-     <string>LOCK</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_preset_status">
-    <property name="geometry">
-     <rect>
-      <x>540</x>
-      <y>850</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Commande pour connaitre le statut de l'appareil</string>
-    </property>
-    <property name="text">
-     <string>STATUS</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_preset_get_ampere">
-    <property name="geometry">
-     <rect>
-      <x>620</x>
-      <y>910</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Commande pour connaitre l'Amperage reel</string>
-    </property>
-    <property name="text">
-     <string>Get Ampere</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_preset_get_voltage">
-    <property name="geometry">
-     <rect>
-      <x>620</x>
-      <y>880</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Commande pour connaitre le Voltage reel</string>
-    </property>
-    <property name="text">
-     <string>Get Voltage</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_preset_out">
-    <property name="geometry">
-     <rect>
-      <x>620</x>
-      <y>850</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Commande pour activer/desactiver la sortie</string>
-    </property>
-    <property name="text">
-     <string>OUT</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_9">
-    <property name="geometry">
-     <rect>
-      <x>460</x>
-      <y>820</y>
-      <width>240</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-      <horstretch>0</horstretch>
-      <verstretch>0</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="minimumSize">
-     <size>
-      <width>240</width>
-      <height>20</height>
-     </size>
-    </property>
-    <property name="maximumSize">
-     <size>
-      <width>200</width>
-      <height>20</height>
-     </size>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>12</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="toolTip">
-     <string>Commandes</string>
-    </property>
-    <property name="text">
-     <string>Commandes :</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_status">
-    <property name="geometry">
-     <rect>
-      <x>540</x>
-      <y>780</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Commande pour connaitre le statut de l'appareil</string>
-    </property>
-    <property name="text">
-     <string>STATUS</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_10">
@@ -1481,31 +1223,249 @@
      </item>
     </layout>
    </widget>
-   <widget class="QPushButton" name="envoyerCommandes">
+   <widget class="QGroupBox" name="commandsSection">
     <property name="geometry">
      <rect>
-      <x>1300</x>
-      <y>920</y>
-      <width>75</width>
-      <height>23</height>
+      <x>460</x>
+      <y>750</y>
+      <width>242</width>
+      <height>164</height>
      </rect>
     </property>
-    <property name="text">
-     <string>Envoyer</string>
-    </property>
+    <layout class="QGridLayout" name="gridCommandes">
+     <item row="0" column="0" colspan="3">
+      <widget class="QLabel" name="label_8">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>240</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>200</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>12</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="toolTip">
+        <string>Console</string>
+       </property>
+       <property name="text">
+        <string>Console :</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QPushButton" name="btn_idn">
+       <property name="toolTip">
+        <string>Commande pour avoir l'identification de l'appareil</string>
+       </property>
+       <property name="text">
+        <string>IDN</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QPushButton" name="btn_status">
+       <property name="toolTip">
+        <string>Commande pour connaitre le statut de l'appareil</string>
+       </property>
+       <property name="text">
+        <string>STATUS</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0" colspan="3">
+      <widget class="QLabel" name="label_9">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>240</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>200</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>12</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="toolTip">
+        <string>Commandes</string>
+       </property>
+       <property name="text">
+        <string>Commandes :</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QPushButton" name="btn_preset_idn">
+       <property name="toolTip">
+        <string>Commande pour avoir l'identification de l'appareil</string>
+       </property>
+       <property name="text">
+        <string>IDN</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QPushButton" name="btn_preset_status">
+       <property name="toolTip">
+        <string>Commande pour connaitre le statut de l'appareil</string>
+       </property>
+       <property name="text">
+        <string>STATUS</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="2">
+      <widget class="QPushButton" name="btn_preset_out">
+       <property name="toolTip">
+        <string>Commande pour activer/desactiver la sortie</string>
+       </property>
+       <property name="text">
+        <string>OUT</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QPushButton" name="btn_preset_ocp">
+       <property name="toolTip">
+        <string>Commande du mode de protection contre les surintensite</string>
+       </property>
+       <property name="text">
+        <string>OCP</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QPushButton" name="btn_preset_set_voltage">
+       <property name="toolTip">
+        <string>Commande pour definir le voltage</string>
+       </property>
+       <property name="text">
+        <string>Set Voltage</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="2">
+      <widget class="QPushButton" name="btn_preset_get_voltage">
+       <property name="toolTip">
+        <string>Commande pour connaitre le Voltage reel</string>
+       </property>
+       <property name="text">
+        <string>Get Voltage</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QPushButton" name="btn_preset_lock">
+       <property name="toolTip">
+        <string>Commande pour activer/desactiver le verrouillage du panneau</string>
+       </property>
+       <property name="text">
+        <string>LOCK</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QPushButton" name="btn_preset_set_ampere">
+       <property name="toolTip">
+        <string>Commande pour definir l'Amperage</string>
+       </property>
+       <property name="text">
+        <string>Set Ampere</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="2">
+      <widget class="QPushButton" name="btn_preset_get_ampere">
+       <property name="toolTip">
+        <string>Commande pour connaitre l'Amperage reel</string>
+       </property>
+       <property name="text">
+        <string>Get Ampere</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
-   <widget class="QPushButton" name="btn_effaceHistorique">
+   <widget class="QWidget" name="commandesmessages" native="true">
     <property name="geometry">
      <rect>
       <x>1300</x>
-      <y>890</y>
-      <width>101</width>
-      <height>23</height>
+      <y>830</y>
+      <width>107</width>
+      <height>112</height>
      </rect>
     </property>
-    <property name="text">
-     <string>Effacer historique</string>
-    </property>
+    <layout class="QGridLayout" name="gridLayout_3">
+     <item row="0" column="0">
+      <widget class="QPushButton" name="btnErrorConsole">
+       <property name="text">
+        <string>Desactive erreurs</string>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QPushButton" name="btnDataConsole">
+       <property name="toolTip">
+        <string>Desactive l'affichage des messages arrivant dans la console</string>
+       </property>
+       <property name="text">
+        <string>Desactive messages</string>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QPushButton" name="btn_effaceHistorique">
+       <property name="toolTip">
+        <string>Efface l'historique de la console</string>
+       </property>
+       <property name="text">
+        <string>Effacer historique</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QPushButton" name="envoyerCommandes">
+       <property name="text">
+        <string>Envoyer</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -1521,9 +1481,19 @@
     <property name="title">
      <string>Fichier</string>
     </property>
+    <widget class="QMenu" name="menuCredits">
+     <property name="title">
+      <string>Credits</string>
+     </property>
+     <addaction name="actionCedric_GRANDCLEMENT"/>
+     <addaction name="actionOlivier"/>
+     <addaction name="actionJeremy"/>
+     <addaction name="actionSebsatien_BUISSON"/>
+    </widget>
     <addaction name="actionEnregistrer_la_configuration_des_param_tres"/>
-    <addaction name="actionConsole"/>
     <addaction name="actionQuitter"/>
+    <addaction name="menuCredits"/>
+    <addaction name="actionEnregistrer"/>
    </widget>
    <widget class="QMenu" name="menuParam_tres">
     <property name="title">
@@ -1550,8 +1520,11 @@
      <addaction name="actionMoyenne"/>
      <addaction name="actionPetite"/>
     </widget>
+    <addaction name="actionConsole_2"/>
     <addaction name="actionMode_expert"/>
     <addaction name="actionMode_simple"/>
+    <addaction name="actionTableau"/>
+    <addaction name="actionGraphique"/>
     <addaction name="separator"/>
     <addaction name="menuTaille_de_la_fen_tre"/>
    </widget>
@@ -1614,11 +1587,20 @@
    </property>
   </action>
   <action name="actionMode_expert">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Mode expert</string>
    </property>
   </action>
   <action name="actionMode_simple">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Mode simple</string>
    </property>
@@ -1717,6 +1699,64 @@
     <string>Changer le port par defaults</string>
    </property>
   </action>
+  <action name="actionCedric_GRANDCLEMENT">
+   <property name="text">
+    <string>Cedric GRANDCLEMENT</string>
+   </property>
+  </action>
+  <action name="actionOlivier">
+   <property name="text">
+    <string>Jeremy</string>
+   </property>
+  </action>
+  <action name="actionJeremy">
+   <property name="text">
+    <string>Olivier</string>
+   </property>
+  </action>
+  <action name="actionSebsatien_BUISSON">
+   <property name="text">
+    <string>Sebsatien BUISSON</string>
+   </property>
+  </action>
+  <action name="actionEnregistrer">
+   <property name="text">
+    <string>Enregistrer</string>
+   </property>
+  </action>
+  <action name="actionConsole_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Console</string>
+   </property>
+  </action>
+  <action name="actionTableau">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Tableau</string>
+   </property>
+  </action>
+  <action name="actionGraphique">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Graphique</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -1762,22 +1802,6 @@
     <hint type="destinationlabel">
      <x>203</x>
      <y>335</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>btn_effaceHistorique</sender>
-   <signal>clicked()</signal>
-   <receiver>console</receiver>
-   <slot>clear()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>1336</x>
-     <y>919</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>1129</x>
-     <y>871</y>
     </hint>
    </hints>
   </connection>
