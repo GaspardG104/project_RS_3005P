@@ -2,7 +2,16 @@
 """
 Created on Fri Jun 27 14:16:35 2025
 
+Location : LNCMI - CNRS Grenoble
+
 @author: gaspard.guidetti
+
+With the help of :
+    
+    Cédric GRANCLEMENT : IT Supervisor, Expert Developer
+    Jérémie CHASTAGNIER : Electronic expert
+    Olivier JAY : Developer
+    Sébastien BUISSON : IT Supervisor
 """
 
 import sys

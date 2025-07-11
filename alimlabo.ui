@@ -1706,12 +1706,12 @@
   </action>
   <action name="actionOlivier">
    <property name="text">
-    <string>Jeremy</string>
+    <string>Jérémie CHASTAGNIER</string>
    </property>
   </action>
   <action name="actionJeremy">
    <property name="text">
-    <string>Olivier</string>
+    <string>Olivier JAY</string>
    </property>
   </action>
   <action name="actionSebsatien_BUISSON">
