@@ -764,7 +764,7 @@ class Ui_MainWindow(object):
         self.actionAppuyer_sur_le_bouton_Connecte.setText(_translate("MainWindow", "Appuyer sur le bouton Connecte"))
         self.actionChanger_le_port_lors_du_lancement_de_l_application.setText(_translate("MainWindow", "Changer le port par defaults"))
         self.actionCedric_GRANDCLEMENT.setText(_translate("MainWindow", "Cedric GRANDCLEMENT"))
-        self.actionOlivier.setText(_translate("MainWindow", "Jérémie CHASTAGNIER"))
+        self.actionOlivier.setText(_translate("MainWindow", "Jeremie CHASTAGNIER"))
         self.actionJeremy.setText(_translate("MainWindow", "Olivier JAY"))
         self.actionSebsatien_BUISSON.setText(_translate("MainWindow", "Sebsatien BUISSON"))
         self.actionEnregistrer.setText(_translate("MainWindow", "Enregistrer"))
