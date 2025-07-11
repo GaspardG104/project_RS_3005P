@@ -1706,7 +1706,7 @@
   </action>
   <action name="actionOlivier">
    <property name="text">
-    <string>Jérémie CHASTAGNIER</string>
+    <string>Jeremie CHASTAGNIER</string>
    </property>
   </action>
   <action name="actionJeremy">
